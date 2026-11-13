@@ -31,7 +31,7 @@ Welcome to **KQ Autoplayer** — an ultra-clean, lightweight, and stylish virtua
 | :--- | :--- |
 | 🌸 **Tech-Minimalist Theme** | Handcrafted dark UI in Charcoal Gray (`#343A40`), Ivory White (`#F8F9FA`), and Steel Blue (`#406185`) accents. |
 | 🪞 **Adaptive & Resizable** | Freely resize, maximize, or snap your window! Smart responsive layout ensures nothing ever gets cut off. |
-| 🍡 **Butter-Smooth 60 FPS Scroll** | Custom anti-ghosting scroll engine. No more tearing, lagging, or "numpuk-numpuk" artifacts! |
+| 🍡 **Butter-Smooth 60 FPS Scroll** | Custom anti-ghosting scroll engine. No more tearing, frame lagging, or visual stacking artifacts! |
 | 🌐 **PlayPianoSheets Integration** | Built-in online browser with instant search, category pills, and 1-click download across **1,800+ songs**! |
 | ⚡ **Zero-Delay Hotkey Engine** | Instant playback toggle (no annoying delays, no need to spam keys!). Equipped with hardware-level debouncing. |
 | 🎯 **Target Window Focus Lock** | Plays notes *only* inside your selected target window (e.g. Roblox) and automatically pauses if you alt-tab! |
@@ -67,29 +67,29 @@ python gui.py
 
 ---
 
-## 🎮 ‧̍̊˙· 𓆝 How to Use (Cara Pakai) 𓆞 ‧̍̊˙· 🎮
+## 🎮 ‧̍̊˙· 𓆝 How to Use 𓆞 ‧̍̊˙· 🎮
 
 ```
        ╭───────────────────────────────────────────────────╮
-  Step │ 1. 📁 Pilih / Buka Sheet Folder                   │
-       │    Pilih folder tempat menyimpan lagu (.txt)      │
+  Step │ 1. 📁 Select / Open Sheet Folder                  │
+       │    Choose the folder where your songs (.txt) live │
        ├───────────────────────────────────────────────────┤
-  Step │ 2. 🌐 Cari Lagu Impianmu!                         │
-       │    Klik tombol [ 🌐 Online Sheets ] untuk unduh   │
-       │    1,800+ lagu langsung dari PlayPianoSheets.com! │
+  Step │ 2. 🌐 Find Your Dream Songs!                      │
+       │    Click [ 🌐 Online Sheets ] to browse and grab  │
+       │    1,800+ songs directly from PlayPianoSheets!    │
        ├───────────────────────────────────────────────────┤
-  Step │ 3. 🎯 Pilih Target Window                         │
-       │    Klik dropdown Target Window lalu pilih game    │
-       │    Roblox kamu (misal: "Roblox").                 │
+  Step │ 3. 🎯 Pick Your Target Window                     │
+       │    Select your Roblox game window from the Target │
+       │    Window dropdown (e.g. "Roblox").               │
        ├───────────────────────────────────────────────────┤
-  Step │ 4. 🎹 Mulai Bermain!                              │
-       │    Tekan tombol hotkey (default: F4) atau klik    │
-       │    tombol bulat ▶ Play. Nikmati melodinya! 🎶     │
+  Step │ 4. 🎹 Start Playing!                              │
+       │    Press your hotkey (default: F4) or click the   │
+       │    cute circular ▶ Play button. Enjoy! 🎶         │
        ╰───────────────────────────────────────────────────╯
 ```
 
 > **Pro Tip (✧ω✧):**  
-> Centang opsi **Auto-play when focused** agar Autoplayer otomatis berhenti ketika kamu alt-tab dan lanjut bermain saat kamu kembali ke game!
+> Check the **Auto-play when focused** switch so the Autoplayer automatically pauses whenever you Alt-Tab and seamlessly resumes as soon as you refocus the game!
 
 ---
 
