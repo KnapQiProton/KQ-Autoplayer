@@ -1,0 +1,97 @@
+#META {"bpm": 40, "subdiv": 4.0, "note": ""}
+[8uos] w [uod] t [us] w [0a] [tup]
+6 0 [tua] e [tup] o 0 [wru]
+3 7 [0w] 7
+3 7 [0w] 7
+[8uos] w [uod] t [uos] w [0a] [tup]
+6 0 [tua] e [tup] o 0 [wru]
+3 7 [0w] 7
+3 7 [0w] 7
+[8uos] w [uod] t [uos] w [0a] [tup]
+6 0 [tua] e [tup] o 0 [wru]
+3 7 [0w] 7
+3 7 [0w] 7
+[8uos] w [uod] t [uos] w [0a] [tup]
+6 0 [tua] e [tup] o 0 [wru]
+3 7 [0w] 7
+3 7 [0w]
+[18tuos] 0 [yd] w [tuos] 0 [8ra] [etup]
+6 0 [ra] e [etup] [wo] 0 [wru]
+3 7 [0w] 7
+3 7 [0w] 7
+[18tuos] 0 [yd] w [tuos] 0 [8ra] [etup]
+6 0 [ra] e [etup] [wo] 0 [wru]
+3 7 [0w] 7
+3 7 [0w] 7
+[18tuos] 0 [yd] w [tuos] 0 [8ra] [etup]
+6 0 [ra] e [etup] [wo] 0 [wru]
+3 7 [0w] 7
+3 7 [0w] 7
+[18tuos] 0 [yd] w [tuos] 0 [8ra] [etup]
+6 0 [ra] e [etup] [wo] 0 [wru]
+3 7 [0w] 7
+3 7 [0w] 7
+[8oh] w [toh] w [uak] [oh] t
+[6IG] 0 [eIG] 0 [tak] [uf]
+3 7 [0w] 7
+3 7 [0w] 7
+[8oh] w [toh] w [uak] [oh] t
+[6IG] 0 [eIG] 0 [tak] [uf]
+3 7 [0w] 7
+3 7 [0w] [sl] w [sl] 0 [sfhl]
+8 w t [wak] u w t [psfj]
+6 [0psfj] e 0 [tak] 0 [afhk] t 0
+3 7 [0w] 7
+3 7 [0w] [sl] w [sl] 0 [7sfhl]
+8 w t [wak] u w t [wIG]
+6 0 [eIG] 0 t [oafh] 0
+3 7 [0w] 7
+3 7 [0w] u I o
+[18tuos] 0 [yd] w [tuos] 0 [8ra] [etup]
+6 0 [ra] e [etup] [wo] 0 [wru]
+3 7 [0w] 7
+3 7 [0w] 7
+[18tuos] 0 [yd] w [tuos] 0 [8ra] [etup]
+6 0 [ra] e [etup] [wo] 0 [wru]
+3 7 [0w] 7
+3 7 [0w] 7
+[18tuos] 0 [yd] w [tuos] 0 [8ra] [etup]
+6 0 [ra] e [etup] [wo] 0 [wru]
+3 7 [0w] 7
+3 7 [0w] 7
+[18tuos] 0 [yd] w [tuos] 0 [8ra] [etup]
+6 0 [ra] e [etup] [wo] 0 [wru]
+3 7 [0w] 7
+3 7 [0w] 7
+8 w t u w I 0 [wo]
+[6tua] 0 e 0
+[3rI] 7 [0w] 7
+3 7 [0w] 7
+8 w t u w I 0 [wo]
+[6tua] 0 e 0 6
+[3rI] 7 [0w] 7
+3 7 [0w] [sl] w [sl] 0 [7sfhl]
+8 w t [wak] u w t [wpsfj]
+6 [0psfj] e 0 [tak] 0 [afhk] t 0
+3 7 [0w] 7
+3 7 [0w] [sl] w [sl] 0 [7sfhl]
+8 w t [wak] u w
+[6IG] 0 [eIG] 0 t [oafh] 0
+3 7 [0w] 7
+3 u I o
+[18tuos] 0 [yd] w [tuos] 0 [8ra] [etup]
+6 0 [ra] e [ep] [0wo] 8 [wru]
+3 7 [0w] 7
+3 7 [0w] 7
+[18tuos] 0 [yd] w [tuos] 0 [8ra] [etup]
+6 0 [ra] e [etup] [wo] 0 [wru]
+3 7 [0w] 7
+3 7 [0w] 7
+[18tuos] 0 [yd] w [tuos] 0 [8ra] [etup]
+6 0 [ra] e [etup] [wo] 0 [wru]
+3 7 [0w] 7
+3 7 [0w] 7
+[18tuos] 0 [yd] w [tuos] 0 [8ra] [etup]
+6 0 [ra] e [etup] [wo] 0 [wru]
+3 7 [0w] 7
+3 7 [0w] 7

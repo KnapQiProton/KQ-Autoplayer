@@ -1,0 +1,82 @@
+#META {"bpm": 80, "subdiv": 4.0, "note": ""}
+6–4 p p p
+[8o] u u u [5y] y t y
+[6u]–u [4u] u t y
+[8u] u-y [5u] u t y
+[6u]–[4u] u t y
+[8u] u t y [5u] u t y
+[6u]–[4f] f s d
+[8f] f s d [5f] d s a
+[6p]–4 j j jj
+1 h h h [5f] s s d
+[6f]–4 f f ff
+1 s s d [5f] d s a
+[6p]–4 j j j
+[1j]h hh l [5l] s s d
+[6f]–4 f f ff
+1 d d d [5d] dfd s
+[6p]–4-p o
+1-p o 5-i u
+6–4 u u y
+1-u y 5-t u
+6–4-p o
+1-p o 5-i u
+6–4 p f d
+1-f d 5-s-
+[6p]–4 p p p
+[8o] u u u [5y] y t y
+[6u]–u [4u] u t y
+[8u] u t y [5u] y t r
+[6e]-pp-[4o]-oo-
+[1o]-oo-[5s]-yy-
+[6u] u u u [4y] y y y
+[1y] y y y [5y] u y t
+6–4 p p pp
+8 o o s [5s] t t y
+[6u]–4 f f ff
+8 d d d [5d] f d s
+[6p]–4-p o
+8-p o 5-i u
+6–4 u u y
+8-u y 5-t u
+6–4-p o
+8-p o 5-i u
+6–4 p f d
+8-f d 5-s-
+[6p]–4-p o
+8-p o 5-i u
+6–4 u u y
+8-u y 5-t u
+6–4-p o
+8-p o 5-i u
+6–4 p f d
+8-f d 5-s-
+[6p]–4 p p p
+[8o] u u-[5y] y t y
+[6u]–u [4u] u t y
+[8u] u t [ty] [5u] y y t
+[6u]-u-[4u] u t y
+[8u] u t y [5u] u t y
+[6u]–[4u] u t y
+[8u] u t y [5u] y t r
+6–4 j j jj
+8 h h h [5f] s s d
+[6f]–4 f f ff
+8 s s d [5f] d s a
+[6e] u p u [4q] t p o
+8-p o 5-i u
+6–4 p f d
+8-f d 5-s f
+6–4-p o
+8-p o 5-i u
+6–4 p f d
+8-f d 5-s-
+[6p]–4-j h
+8-j h 5-g f
+6–4 f f d
+8-f d 5-s f
+6–4-j h
+8-j h 5-g f
+6–4 j x z
+8-x z 5-l-
+[6j]

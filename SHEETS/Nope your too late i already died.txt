@@ -1,0 +1,18 @@
+#META {"bpm": 60, "subdiv": 2.62, "note": ""}
+[18aotu] a [0arw] [8a] [29aoy] s [arwy] [9o] 
+[5aoy] a [79aw] [7a] [(7aIpY] s [Qr] [(d] 
+[18aotu] a [0aw] [8a] [29aoy]-s[arw] [9o] 
+[5aoy] a [9aw] [7a] [(7aIpY] s [Qr] [(d] 
+[18aotu] a [0arw] [8a] [29aoy] s [arwy] [9o] 
+[5aoy] a [79aw] [7a] [(7aIpY] o [Qr] [(u] 
+[18aotu] a [0aw] [8a] [29aoy]-s[arw] [9o] 
+[5aoy] a [9aw] [7a] [(7aIpY] s [Qr] [(d] 
+[18aotu] a [0arw] [8a] [29aoy] s [arwy] [9o] 
+[5aoy] a [79aw] [7a] [(7aIpY] p [aQr] [(d] 
+[18aotu] a [0aw] [8a] [29aoy]-s[arw] [9o] 
+[5aoy] a [9aw] [7a] [(7aIpY] s [Qr] [(d] 
+[18aotu] a [0arw] [8a] [29aoy] s [arwy] [9o] 
+[5aoy] a [79aw] [7a] [(7aIpY] s [Qr] [(d] 
+[18aotu] a [0aw] [8a] [29aoy]-s[arw] [9o] 
+[5aoy] a [9aw] [7a] [(7aIpY] p [oQr] [(I] 
+[579aowy]----

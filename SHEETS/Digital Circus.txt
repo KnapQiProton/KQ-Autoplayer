@@ -1,0 +1,95 @@
+#META {"bpm": 60, "subdiv": 4.0, "note": ""}
+[8o] u t
+[%y] [6u] [W0a] [ep]
+[6i]-q-s
+p i [5qe] W [5wro]
+P a [1s] o 5 o
+[4h] [of] [8f] [od]
+[6s] p 3 p
+[5h] [Pf] [8f] [$Pd] D
+[4f] p 8 p
+[3h] [pf] [6f] [@pd]
+[2s] [ip] [6s] [id]
+[5h] [op] [5s] [od]
+[1s] o 5 o
+[4h] [of] [8f] [od]
+[6s] p 3 p
+[5h] [Pf] [8f] [$Pd] D
+[4f] p 8 p
+[3h] [pf] [6f] [@pd]
+[2s] [ip] [6s] [id]
+[5h] [op] [2s] [od]
+[4f] e s 8 [eo]
+[3f] w s 8 [wo]
+[$s] e p 4 [wo]
+3 w [8u] i [$I] o
+[4f] e s 8 [eo]
+[3f] w s 8 [wo]
+[2p] q p 2 [qP]
+5 [Eo] [1d] [ts] d
+[4f] e s 8 [eo]
+[3f] w s 8 [wo]
+[$s] e p 4 [wo]
+3 w [8u] i [$I] o
+[4f] e s 8 [eo]
+[3f] w d 8 [ws]
+[2d] e d 2 [5wiD]
+D d [1s] o 5 o
+[4h] [of] [8f] [od]
+[6s] p 3 p
+[5h] [Pf] [8f] [$Pd] D
+[4f] p 8 p
+[3h] [pf] [6f] [@pd]
+[2s] [ip] [6s] [id]
+[5h] [op] [5s] [od]
+[1s] o 5 o
+[4h] [of] [8f] [od]
+[6s] p 3 p
+[5h] [Pf] [8f] [$Pd] D
+[4f] p 8 p
+[3h] [pf] [6f] [@pd]
+[2s] [ip] [6s] [id]
+[5h] [op] [2s] [od]
+[4f] e s 8 [eo]
+[3f] w s 8 [wo]
+[$s] e p 4 [wo]
+3 w [8u] i [$I] o
+[4f] e s 8 [eo]
+[3f] w s 8 [wo]
+[2p] q p 2 [qP]
+5 [Eo] [1d] [ts] d
+[4f] e s 8 [eo]
+[3f] w s 8 [wo]
+[$s] e p 4 [wo]
+3 w [8u] i [$I] o
+[4f] e s 8 [eo]
+[3f] w d 8 [ws]
+[2d] e d 2 p
+[5wto] [7wrI]
+[8WTS] [W8ts]
+[1s] o 5 o
+[4h] [of] [8f] [od]
+[6s] p 3 p
+[5h] [Pf] [8f] [$Pd] D
+[4f] p 8 p
+[3h] [pf] [6f] [@pd]
+[2s] [ip] [6s] [id]
+[5h] [op] [5s] [od]
+[1s] o 5 o
+[4h] [of] [8f] [od]
+[6s] p 3 p
+[5h] [Pf] [8f] [$Pd] D
+[4f] p 8 p
+[3h] [pf] [6f] [@pd]
+[2s] [ip] [6s] [id]
+[5h] [op] [2s] [od]
+[2t] [qe] [6t] [qy]
+[5o] [we] [2t] [wy]
+[2f] e [2s] [ed]
+[5f] r [5D] [rd]
+[8us] t 5 w
+[%O] t @ W
+[!S] [!S] [@D] [4g]
+[5h] G [5G] g
+[1f]
+[18]

@@ -1,0 +1,32 @@
+#META {"bpm": 60, "subdiv": 2.62, "note": ""}
+% t [(Y] i [8O]-P-[(s]----
+% 
+t [(Y] i [8O]-P-[(O]----
+[*s] P [qO] i [WY] t Y i 
+[WO]-P-[Ws]-P O i 
+[%O] i [(O] i [8O]-P-[(O]----
+[Tm] [iB] [OV] [Pc] [sZ] [Pl] O i-
+Y t Y [tL] [Yl] t Y 
+[tTJ] [YH] [tg] [YH] [tJ] [Yl] [tJ] [EH] 
+[Wg]----
+% [tY] [(YO] [iP] [O8s]-[PD]-[(sg]----
+% 
+[tY] [(YO] [iP] [O8s]-[PD]-[(Os]----
+% 
+[tY] [(YO] [iP] [O8s]-[PD]-[(sg]----
+% 
+[tY] [(YO] [iP] [O8s]-[PD]-[(Os]----
+[!*s] P [qO] i [qWY] t Y i 
+[WO]-P-[Wqs]-P O i 
+[%O] i [8(O] i [8O]-P-[8(O]----
+[4q] i [8O] P [(s] P O i-
+Y t Y t Y t Y 
+[*t] Y [Wqt] Y t Y t E 
+W----
+% [tY] [(YO] [iP] [O8s]-[PD]-[(sg]----
+% 
+[tY] [(YO] [iP] [O8s]-[PD]-[(Os]----
+% 
+[tY] [(YO] [iP] [O8s]-[PD]-[(sg]----
+% 
+[tY] [(YO] [iP] [O8s]-[PD]-[(Os]

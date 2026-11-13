@@ -1,0 +1,69 @@
+#META {"bpm": 60, "subdiv": 4.0, "note": ""}
+i p a s a p i p a s
+a p i p a s a p i p
+a s a p u o a [sk] a
+o u o a d a o u o a
+[dk] a o u o a f a o
+y p s [hk] s p y p s
+h s p y p s [hk] s p
+y p s h s p t o f
+[kz] f o t o f k f o
+t o f [kz] f o t o f
+l f o [iz] p [aj] s
+[ak] p [il] p a s a
+p [iz] p [aj] s [ak]
+p [il] p a [sk] [aj]
+p [uz] o [ah] s [aj]
+o [uk] o a d a o
+[uz] o [ah] f [aj] o
+[uk] o a [fj] [ah] o
+[yz] p [sh] h [sj] p
+[yk] p s h s p [yz]
+p [sh] h [sj] p [yk]
+p s [hj] [sz] p
+[thv] o [gc] h [gz]
+o [tk] o d h d o t o
+f k k f o [tkz] o f
+[klv] f o [4l] 8 0 s
+[ef] f [qf] t y p
+[ed] f [qh] t u p
+[td] p [qs] t u o y
+1 5 [8hk] [0l] [rk]
+w [8of] w r u [rd] w
+[8od] w r y [uf]
+[yh] [uh] t y o s t
+[fhlq] e E i z [tlh]
+E s t f [qd] [9ph] q
+e t [dg] 0 [qsf] e t
+u o y [wu] t [yfk]
+[tl] [yk] o d a t y
+d [0s] e y o u w r
+[uf] [ok] [pzv] t i
+p f b g g b f [gb]
+[ps] j b k l b k
+[hm] [sfv] v x d v v
+z [4sfl] 8 0 e 0 d h
+k h g d [adz] o i y
+r [fx] 9 [4fx] 8 0 o
+a o [8lm] [wkn] e
+[fx] q [dz] [1ahk] 5
+[8a] [0s] [wa] [yo]
+[8y] w [rgjc] y
+[fhx] [7dgz] q e r y
+x [3sl] 7 9 W t O s
+O t [toa6] 0 [esl] e
+[tdz] u [efjlx] t
+[kno] r [lmt] 9
+[5hlv] 9 w r t h
+[wl] [yh] [ol] c r x
+[4ljx] 8 q w e [tx]
+[qjz] [tl] i w e l
+[2jv] 6 9 0 q e
+[9vn] [qk] [ex] [tb]
+[0v] [qs] [6lbm] 8 0
+[wsf] e t q w [tf] h
+z e [wk] q [7ofh] 0
+w r u o [wa] u f h k
+[qm] u n [am] v s m
+h g f [tm] u O n m
+[sv] m d m v a

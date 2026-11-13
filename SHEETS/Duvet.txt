@@ -1,0 +1,45 @@
+#META {"bpm": 60, "subdiv": 2.62, "note": ""}
+y T r T y [0u5]
+[I97] [rw] 9 7 5
+[7r9Q] $ [y7] [T9] r
+Q [T9] [y7] [uwr73]
+5 u 7 u [0w] y r Q
+[y9Q7] $ y 7 T [r9]
+[T*Q] [y7r] [uw5] 7
+9 I r [w9] 7 7 9 Q y
+T [rQ] 9 [T7] $ y 2
+[u357] u [uwr] y
+[Q79] r r I I u I u
+u I 5 [u7] 9 [rw] r
+I I I I u I p [u7] 9
+Q r y T [rQ] [T9] y
+7 [u3] 5 u 7 u y 7 9
+Q [ar] Q [p9] 7 [u0]
+3 [I0] w r a [pr] w
+[u0] 7 [I7] 9 Q a
+[pQ] 9 [u7] 3 5 [u7]
+u I y u [9Q7] [pew5]
+7 [y9wr] 7 [y7Qr] 9
+[IQ7] [pe] [9y$]
+[y9] [r730] 5 [w7] 0
+[Q27] 9 [7$] 2 [9r5]
+[p5] I p 7 I p [I9]
+p I [p7] [I$] p 7 9
+I [aQ] [Ir] y [pI] 3
+5 7 [r0] w [r7] 9 Q
+e [akr] [pj] Q r
+[uofQ] [w5] [IG9] r
+y [ako] [pjy] r
+[uaf] w [r7] [GIQ] y
+I [ka] [jpI] y f
+[ru] [03] [IG7] w r
+[yd] [yd] [yd] [pj]
+[r7] [GQI] r [kIa]
+[y79Q] [jp] [7Qr]
+[fu] [w5] [IG5] 7 5
+[ak9] [pj] 7 w [uf]
+9 7 [uf$] [uf7]
+[IG9] [ak$7Q] [pj]
+[2$7] [fu] 3 [IG7] 0
+w y y y p 7 I Q r y
+p

@@ -1,0 +1,88 @@
+#META {"bpm": 120, "subdiv": 2.62, "note": ""}
+s - s---s--
+s - s---s - s a-y u-i y-u y-s - 
+s - s a-p--[ts] - [ts]---[ts]--
+[ts] - [ts]---[ts]--d---f----
+p - o - u - 
+y - y-u y-t e-w y - y-u y-t t-e----
+w - e - q - p - o - u - 
+y-y y-u - y - t y - y-u - y - t 
+u---O-u-O-p - t-t t-y - t 
+t-y - t u-o u-u - y----y-p - 
+y y-y - u y-t---t [tp]-[uo] - [uo] - 
+[yo] [to] - t-y u-u y----[wo] [wo]-[tp] - 
+[ep] [wp]-[tp] - [ep] [wo]-[tp] - [es]---[ep] [ep]-[ts] - 
+[tp]---[ep] [ra]-[ts] - [0p] - [0p] - [0p] [0p]-[wp] - 
+[0a] - [9a] [8s]----w-w u-y----
+w-e w-t--e----
+p - o-i o-p t-u--
+y - y-t--O - O-O I-O - f - 
+d - s - s d-p--o-i o-p - u--
+y - y-t - O----f----
+d - s----
+t-y u-y---u---p - 
+u - y - t - t----
+8 - 
+9-
+9 
+w-
+0--
+8 - 
+9 - w-9----t y-u - 
+t y-u - t y-t--8 - 9 - w-0--
+8 - 9 - w-9----t y-u - 
+t y-u - t y-t--p - o - u - 
+y - y-u y-t e-w y - y-u y-t t-e---
+e w - e - e - p - o - u - 
+y-y - u - y - t y - y-u - y - t 
+u---o-u-o-p - t-t t-y - t 
+t-y - t u-o u-u y----y y-p - 
+y-y - u y-t----p-o - o - 
+y Y-y t-y u-u y----y y-s - 
+p o-s - p o-s - p---o p-a - 
+a - a---s u-u - u - u - p - 
+u - u t----
+w w-w u-y t-t - e----
+p - o-i o-p t-u--
+y - y-t - O--O-O I-O - f - 
+d s-s - d - p--o-i o-p - u--
+y-t y-t - O----O-d 
+f----f d-s----
+s-d f-d---f--f-h - 
+f - d - s s-s - p----
+t - 
+y - 
+o-
+u--
+t - 
+y - 
+o-y----8 9-0 - 
+8 9-0 - 8 8-8--t - y - o-u--
+t - y - o - y----8 9-0 - 
+8 9-0 - 8 w - 8----t-u 
+y - t - y - t-u----y-u 
+i---u---e----e-u 
+y - t - t - o-u----
+y - y-t y-u u - e----e e-e 
+r-r e - r-e - e----e e-t--
+y-r - r e-e----e e-r--
+y-w--r-0----
+9 - 9-8 9-0--u---W - W-u 
+y - t-t y-t - u - y u----u 
+i-u-y-u-y-t-e----e-u 
+y - t-t t-o--u----
+y - y-t y-u---e e-r t-y u-t 
+W-e r-r t-y u-u y---y t - t-o - 
+Y y-t---Y----
+p a - a-p p-p----
+y - y-t y-u----
+p - 
+o-
+i 
+o-
+p t-u p - [yo]-i [yo]-[tp] t-[uO]--
+[yO]-O [yI]-[tO] - f - d s-s - d - p 
+p - o-i o-p - u--y - y-t - O----
+O O-f----d d----
+t-y u-y---
+u---p - u - y - t - t

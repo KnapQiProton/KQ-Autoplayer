@@ -1,0 +1,102 @@
+#META {"bpm": 60, "subdiv": 4.0, "note": ""}
+9 e y I 6 0 e T 
+7 Q r y $ * Q e 
+5 9 w r 2 6 9 Q 
+5 9 w r 6 0 e T 
+[9G] e y I [6f] 0 e T 
+[7d] Q r y [$S] * Q e 
+[5a] 9 w r [2p] 6 9 Q 
+[5a] 9 w r [6S] 0 e T 
+[9dGp] e y I [6fpS] 0 e T 
+[7adI] Q r y [$IpS] * Q e 
+[5aoy] 9 w r [2Ipy] 6 9 Q 
+[5aoy] 9 w r [6pSu] 0 e T 
+[9d] e [Gy] I [6j] 0 [eh] T 
+[7G] Q [dr] y [$G] * Q [ef] 
+[5d] 9 [aw] r [2d] 6 [9G] Q 
+[5h] 9 [kw] r [6j] 0 e [hT] 
+[9dG] e [Gy] I [6fj] 0 [eh] T 
+[7dG] Q [dr] y [$GS] * Q [ef] 
+[5ad] 9 [aw] r [2dp] 6 [9G] Q 
+[5ah] 9 [kw] r [6jS] 0 e [hT] 
+[9d] [eS] [dy] [Ip] [6p] 0 [eS] T 
+[7d] Q [Gr] y [$j] * Q [ek] 
+[5h] [9G] [fw] [hr] [2G] [6f] [9d] [QS] 
+[5a] [9p] [dw] r [6d] 0 e [ST] 
+[9d] [eS] [dy] [Ip] [6p] 0 [eS] T 
+[7d] Q [Gr] y [$j] * Q [ek] 
+[5h] [9G] [fw] [hr] [2G] [6f] [9d] [QS] 
+[5a] [9p] [dw] r [6d] 0 e [ST] 
+[9d] [eS] [dy] [Ip] [6S] [0p] [ef] [GT] 
+[7d] [dQ] [rS] [ay] [$S] [*G] [jQ] [ek] 
+[5h] [9G] [fw] [hr] [2G] [6f] [9d] [QS] 
+[5a] [9p] [ow] [Ir] [6u] [0o] [eI] [Tu] 
+[9d] [ef] [Gy] [hI] [6j] [0f] [ej] [hT] 
+[7G] [kQ] [jr] [hy] [$j] [*h] [GQ] [ef] 
+[5d] [9a] [aw] [rS] [2d] [6G]f[9d] [GQ] 
+[5h] [9d]S[aw] [rS] [6d] 0 e [ST] 
+[9j] [eG]h[jy] [GI]h[6j]p[0a]S[de]f[GT]h
+[7G] [dQ]f[Gr] [Iy]o[$p]a[*p]o[pQ]I[eo]p
+[5o] [9a]p[ow] [Ir]u[2I]u[6y]u[9I]o[pQ]a
+[5o] [9a]p[aw] [rS]d[6p]a[0S]d[ef]G[hT]j
+[9j] [eG]h[jy] [GI]h[6j]p[0a]S[de]f[GT]h
+[7G] [dQ]f[Gr] [Iy]o[$p]a[*p]o[pQ]I[eo]p
+[5o] [9a]p[ow] [Ir]u[2I]u[6y]u[9I]o[pQ]a
+[5o] [9a]p[aw] [rS]d[6p]a[0S]d[ef]G[hT]j
+[9G] [de]f[Gy] [fI]d[6f]S[0d]f[eG]f[dT]S
+[7d] [aQ]S[dr] [dy]f[$G]h[*G]f[GQ]d[eS]d
+[5a] [9d]S[aw] [pr]o[2p]o[6I]o[9p]a[QS]d
+[5a] [9d]S[dw] [rS]a[6S]p[0a]S[de]f[GT]h
+[9G] [de]f[Gy] [fI]d[6f]S[0d]f[eG]f[dT]S
+[7d] [aQ]S[dr] [dy]f[$G]h[*G]f[GQ]d[eS]d
+[5a] [9d]S[aw] [pr]o[2p]o[6I]o[9p]a[QS]d
+[5a] [9d]S[dw] [rS]a[6S]p[0a]S[de]f[GT]h
+[9j] [de] [Gy] [Ij] [6j] [0k] [ej] [hT] 
+[7G] Q r [Gy] [$G] [*h] [GQ] [ef] 
+[5d] [9s] [aw] [rs] [2d] 6 [9p] Qp
+[5d] [9s] [aw] [rs] [6d] 0 [eS] T 
+[9j] e y [Ij] [6j] [0k] [ej] [hT] 
+[7G] Q r [Gy] [$G] [*h] [GQ] [ef] 
+[5d] [9s] [aw] [rs] [2d] 6 [9p] Qp
+[5d] [9s] [aw] [rs] [6d] 0 e [ST] 
+[9G] [eI] [oy] [I] [6u] [0f] [eG] [fT] 
+[7d] [IQ] [dr] [ay] [$p] [*p] [oQ] [ep] 
+[5a] [9a] [Sw] [ar] [2p] [6p] [9o] [pQ] 
+[5a] [9a] [pw] [ar] [6S] [0S] [ae] [ST] 
+[9d] [de] [fy] [dI] [6S] [0S] [de] [ST] 
+[7a] [aQ] [pr] [ay] [$S] [*S] [GQ] [ef] 
+[5d] [9d] [fw] [hr] [2G] [6I] [9p] [GQ] 
+[5G] [9h] [Gw] [hr] [6f] [0p] [ef] [ST] 
+[9dG] [de]f[Gy] [dI] [6fS] [0S]d[ef] [ST] 
+[7ad] [aQ]S[dr] [ay] [$pS] [*j]h[GQ] [ef] 
+[5ad] [9h]G[fw] [hr] [2Gp] [6d]f[9G] [jQ] 
+[5hk] [9k]j[hw] [kr] [6fS] [0j]h[eG] [fT] 
+[9dG] [de]S[dy] [Ip] [6fp] [0p]a[eS] [pT] 
+[7ad] [dQ]f[dGr] [dy] [$GS] [*G]f[dQ] [eS] 
+[5ao] [9a]p[aw] [rS] [2dp] [6G]f[9d] [GQ] 
+[5ah] [9d]S[aw] [rS] [6dfp] 0 [eS] T 
+[9dGp] e y [GI] [6G] [0h] [eG] [fT] 
+[7d] Q r [dy] [$d] [*f] [dQ] [eS] 
+[5ao] 9 w r [2d] 6 [9p] Q 
+[5ao] 9 w r [6p] 0 e [ST] 
+[9dGj] e y [GIj] [6Gj] [0hk] [eGj] [fhT] 
+[7dG] Q r [dGy] [$dG] [*fh] [dGQ] [efS] 
+[5ad] [9s] [aw] [rs] [2d] 6 [9p] QI
+[5d] [9s] [aw] [rs] [6pS] 0 e [ST] 
+[9dIp] e y [Ip] [6p] [0a] [ep] [oT] 
+[7I] Q r [Iy] [$I] [*o] [IQ] [eu] 
+[5d] [9s] [aw] [rs] [2d] 6 [9p] Qp
+[5d] [9s] [aw] [rs] [6d] 0 [eS] T 
+[9p] e y [Ip] [6p] [0a] [ep] [oT] 
+[7dS] Q [adr] y $ * [pQs] e 
+[5ap] 9 [ow] r [2dp] 6 [9p] Q 
+[5ao] 9 w r [6pu] 0 e T 
+[9p] e [dGpy] I 6 0 [ef] T 
+[7dIS] Q [dkrz] y $ * [fjlQ] e 
+[5djk] 9 [hw] r [2Gjz] 6 [9dGj] Q 
+[5dhk] 9 w [fr] [6fjS] 0 [eh] T 
+[9Gjp] e y I [6p] 0 e [oT] 
+[7GI] Q r y [$G] * Q [ef] 
+[5dh] 9 w r [2Gj] 6 [9dy] Q 
+[5ad] 9 w [fr] [6fu] 0 e [pST]----
+[26Qy]Ipd----

@@ -1,0 +1,108 @@
+#META {"bpm": 70, "subdiv": 4.0, "note": ""}
+[*i]-q-W-[iq]-
+[(I]-[iQ]-[IT]-Q-
+[Oq]-[SW]-[sY]-[SW]-
+[IQ][EP][SY]g--D--
+[EHiOS]-O-SDH-G g 
+[HiOW]-S-O-Y-
+[$Q]-*-Q-W-
+T----
+[*iW]--O-P-
+[8OW]--Y--
+[^qTW]--[Os]-S-
+[%iqs]--O--
+[*$PY]--[*$]-[PY]-
+[*4Y]-O-[*4T]-i i 
+[*$I]-i-[*$Y]-T-
+[%i]-^-[8Y]-%-
+[*iW]--[*OW]-P-
+[8OWY]--[8tWY]-[iT]-
+[^qTW]-T-[^iqs]-S-
+[%iqs]--[%gHOq]--
+[*$DHOY]-[ST]-O-[*$giOS]-
+[(%DY]-[ST]-[HOW]-[(%St] T 
+[*S]-W-T-Y-
+[HO]-[lT]-[YZ]-[LO]-
+[*H]-W-T-Y-
+[HO]----
+[OT]Sg----T-
+[PY]SDG g-[Gt]-[IT]-
+[is]DH-L-l-[Lt]-
+[EHPST]--[DE]-[St]-
+[OQST]--[OW]-[ST]-
+[DOWY]-[OT]-[St]-[gW]-
+[*gHSW]--[*W]-[gOSW]-
+[8DOWY]--[iW]--
+[*iTW]--[*W]-[iT]-
+[(EIY]-i-[(ItY]-I-
+[HiOqT]-S-s t S-
+[IQT][EP]Sg--D--
+[EPS]-[iT]-[gPS]-i-
+[DHOSWY]-[WY]-[DHOtW]-T-
+[QS]-T-[HO]-[JP]-
+[cg]--W--
+[E] [IW] S HT-JY[DtY] O 
+S D Y [gi] [giT] [OY] [Di] [cV] 
+Y [DY] [tY] [OT] [St] [HZ] H [DW] 
+[^E] [QW] [ET] [OT]-[PY] [8Y] W 
+T Y Y i [*i] [WY] i [gHO] 
+Y i [8i] [WY] [iT] [DO] O [Y] 
+[*$i] [*$i] [*$i] [*$O] [*$] [*$T] [*$T] [*$] 
+[*$t] [*$T] [*$] [*$O] [*$T] [*$] [*$t] [*$T] 
+[*$] [*$O] [*$T] [*$] [*$T] [*$T] [*$] [*$t] 
+[*$W]----
+m c Z V L l c J 
+HZGglgD S s O Y 
+T----
+[WY]----
+[!%it]----
+Y----T l 
+[mt]----
+Y--
+[iOT]Sg--[HO]-[JP]-
+[DHOst]--[DY]-T-
+[EiOST]--P [Hls]-[LS]-
+[glsW]--g [HO]--
+[DJPQT]--[QT]-[DJP]-
+[DJqT]-[HO]-[qST]-[gi]-
+[GIQST]-[gi]-[DQTY]-[ST]-
+[gSWY]-[Ei]-[DstY]-W-
+[HiOT]--[OT]-[JP]-
+[HOt]--[DOtY]-[ST]-
+[EiST]-[ST]-[Eils]-[LS]-
+[gilsW]--[cHiVW]--
+[HQTYZ]-[LT]-[HT]-[iLQT]-
+[WYZ]-[LT]-[HW]-[OWY][DY]----
+[%OTW]-H-[(@H] g D S 
+[!*iqTW]--[iOTW]-[OPT]-
+[18OtWY]--[%tWY]--
+[^qTW]--[iOs]-[OS]-
+[%ist]--[4OqtW]--
+[$EPTY]----[PY]-
+[4]-O-[!*TW]-[iT]-
+[$IQT]-[iT]-[TY]-[TW]-
+[%iTW]-[^]-[18tWY]-[%]-
+[!*iqTW]--[iOTW]-[OPT]-
+[18OtWY]--[%WY]-T-
+[^qTW]--[iOs]-[PS]-
+[%iOs]--[4q]--
+[$IPT]-O-O-[OS]-
+[%sY]-O-t-T-
+[!*S]-[HW] J [HT]-[HY] J 
+[HO]-[(@g] [4q] [!*D]-[%SY]-
+[*%T]-W-T-Y-
+[HO]----
+[*i]-q-W-[iq]-
+[(I]-[iQ]-[IT]-Q-
+[Oq]-[SW]-[sY]-[SW]-
+[IQ][EP][SY]g--D--
+[EHiOS]-O-SDH-G g 
+[HiOW]-S-O-Y-
+[$Q]-*-Q-W-
+T----
+[$Q]-*-Q-W-
+T----
+[$Q]-*-Q-W-
+T----
+[$cgQ]-*-Q-W-
+T----

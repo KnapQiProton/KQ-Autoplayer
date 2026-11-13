@@ -1,0 +1,43 @@
+#META {"bpm": 80, "subdiv": 2.62, "note": ""}
+[9o] [eG] [Ij] b b [ez] [*uv] e 
+[7y]C [dQ]u [rz]-[6z] [0b] [LT] 
+[yz] [5o] [Gr] [Ij]-vb [bv] [ez] [0Tv] 
+e [7y]C [dQ] z-[*u] [ez] [Ix] 
+z [9o] [eG] [Ij] b b [ez] [*uv] e 
+[7y]C [dQ] [rz]-[6z] [0b] [LT] 
+[yz] [5o] [Gr] [Ij]-vb [bv]y[ez] [0Tv] 
+e [7y]C [dQ] z-[*u] [ez] [Ix] 
+zu [9o] e I--[eG] [*Gu] [eG] 
+[7Gy] [GQ] [Gr] G [6G] 0 [fT] 
+y [5do] r I--[eG] [0GT] 
+[eG] [7Gy] [GQ] G G [*ju] e fI-
+[9do] e I--[eG] [*Gu] 
+[eG] [7Gy] [GQ]e [Gr] G [6G] 0 [fT] 
+y [5do] r I--[eG] [0GT] 
+[eG] [7Gy] [GQ] G G [*ju] e fI-
+[9do] e I--[eG] [*Gu] 
+[eG] [7Gy] [$GQ] [Gr] G [6G] 0 [fT] 
+y [5do] r Iy--y[eG] [0GT] 
+[eG] [7Gy] [GQ] G G [*ju] e [fI]-
+[9do] e I--[eG] [*Gu] 
+[eG] [7Gy] [$GQ] [Gr] G [6G] 0 [fT] 
+y [5do] r I--[eG] [0GT] 
+[eG] [7Gy] [GQ] G G [*ju] e [fI]-
+[9o] e [GI] G G [eG] [*Gu] 
+[eh] [7Gy] Q [dr] d j6 0 [GT] 
+[hy] [5Go] r [hI] h h [eh] [0hT] h
+e y[7G] [GQ] Gh G [*fu] e [dI] 
+d [9do] e [GI] G G [eG] [*Gu] 
+[eh] [7Gy] Q [dr] d j6 0 [GT] 
+[hy]9 [5Go] r [hI] h h [eh] [0hT] 
+[eh] y[7G] [GQ] G G [*fu] e [dI] 
+d [wyz] p Q-b p [fTz] 
+[pz] [drz] I a-be u [Sz] 
+[dz] [hwz] a [Gv] v v [pv] [Suv] 
+[pv] [Cdr] [CI] C C [fTx] p [Gz] 
+z [hTyz] p G-[px]Cb p z[fT] 
+[pz] [drz] [Ip]da-d [bCe] u [kSz] 
+[dkz] [hkwz] a G v v [pv] [Suv] p
+v [Cdr] [CI] C C fy p [GTz] 
+z [yz] I p S f j-pj 
+Lzp-j--j
