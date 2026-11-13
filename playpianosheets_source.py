@@ -2,10 +2,12 @@
 PlayPianoSheets.com Online Sheet Integration for KQ Autoplayer.
 
 Allows searching, browsing, and 1-click downloading of 1,800+ sheets
-from https://playpianosheets.com/ into the local sheets library.
+from https://playpianosheets.com/ into the local sheets library,
+with rich genre/category filtering (Classical, Anime, Gaming, Pop, etc.).
 """
 from __future__ import annotations
 
+import json
 import re
 import socket
 import threading
@@ -30,6 +32,7 @@ FONT_TITLE = ('Segoe UI', 14, 'bold')
 FONT_LABEL = ('Segoe UI', 12)
 FONT_LABEL_BOLD = ('Segoe UI', 12, 'bold')
 FONT_SUBTLE = ('Segoe UI', 10)
+FONT_SUBTLE_BOLD = ('Segoe UI', 10, 'bold')
 FONT_NUMERIC = ('Consolas', 11)
 FONT_NUMERIC_BOLD = ('Consolas', 11, 'bold')
 
@@ -55,14 +58,61 @@ def slug_to_title(slug: str) -> str:
     return ' '.join(p.capitalize() for p in parts)
 
 
-def fetch_playpianosheets_catalog() -> list[str]:
-    """Fetch complete catalog of song slugs from playpianosheets.com sitemap."""
+def fetch_playpianosheets_catalog() -> list[dict]:
+    """
+    Fetch complete catalog of songs from playpianosheets.com including
+    title, artist, genres/tags, and slug.
+    """
+    # 1. Fetch full catalog from category/all with rich metadata (1,800+ songs)
+    url = 'https://playpianosheets.com/category/all'
+    req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'})
+    try:
+        with urllib.request.urlopen(req, timeout=12) as resp:
+            html = resp.read().decode('utf-8', errors='ignore')
+
+        cleaned = html.replace('\\"', '"').replace('\\\\', '\\')
+        pattern = re.compile(
+            r'\{"id":"([^"]+)","title":"([^"]+)","artist":"([^"]*)","image":"[^"]*","tags":(\[[^\]]*\]),"slug":"([^"]+)"'
+        )
+        items = []
+        for m in pattern.finditer(cleaned):
+            sheet_id, title, artist, tags_raw, slug = m.groups()
+            try:
+                tags = json.loads(tags_raw)
+            except Exception:
+                tags = []
+            items.append({
+                'id': sheet_id,
+                'title': title.strip(),
+                'artist': artist.strip(),
+                'tags': [t.strip().lower() for t in tags],
+                'slug': slug.strip(),
+            })
+
+        if items:
+            return items
+    except Exception:
+        pass
+
+    # 2. Fallback to sitemap.xml if category/all is unavailable
     url = 'https://playpianosheets.com/sitemap.xml'
     req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'})
-    with urllib.request.urlopen(req, timeout=8) as resp:
-        data = resp.read().decode('utf-8', errors='ignore')
-    slugs = re.findall(r'<loc>https://playpianosheets\.com/sheets/([^<]+)</loc>', data)
-    return slugs
+    try:
+        with urllib.request.urlopen(req, timeout=8) as resp:
+            data = resp.read().decode('utf-8', errors='ignore')
+        slugs = re.findall(r'<loc>https://playpianosheets\.com/sheets/([^<]+)</loc>', data)
+        return [
+            {
+                'id': s,
+                'title': slug_to_title(s),
+                'artist': '',
+                'tags': [],
+                'slug': s,
+            }
+            for s in slugs
+        ]
+    except Exception:
+        return []
 
 
 def download_playpianosheet(slug_or_url: str, output_dir: Path) -> tuple[Path, str]:
@@ -127,6 +177,71 @@ def download_playpianosheet(slug_or_url: str, output_dir: Path) -> tuple[Path, s
     meta_line = f'#META {{"bpm": 120, "subdiv": 4.0, "note": "Source: playpianosheets.com/sheets/{slug} | {header_info}"}}\n'
     out_file.write_text(meta_line + sheet_music.strip() + '\n', encoding='utf-8')
     return out_file, title
+
+
+def item_matches_genre(item: dict, genre: str) -> bool:
+    """
+    Check if a sheet matches a given music genre category based on
+    its tags, artist, title, or slug.
+    """
+    if genre == 'All':
+        return True
+
+    tags = item.get('tags', [])
+    title = item.get('title', '').lower()
+    artist = item.get('artist', '').lower()
+    slug = item.get('slug', '').lower()
+
+    if genre == 'Classical':
+        composers = [
+            'chopin', 'beethoven', 'bach', 'mozart', 'liszt', 'debussy', 'tchaikovsky',
+            'rachmaninoff', 'brahms', 'vivaldi', 'pachelbel', 'handel', 'schubert',
+            'schumann', 'satie', 'mussorgsky', 'ravel', 'dvorak', 'grieg', 'mendelssohn',
+            'strauss', 'shostakovich', 'haydn'
+        ]
+        classical_tags = [
+            'classical', 'baroque', 'romanticism', 'romantic', 'opera', 'waltz',
+            'sonata', 'nocturne', 'prelude', 'etude'
+        ]
+        return any(t in tags for t in classical_tags) or any(c in artist or c in title or c in slug for c in composers)
+
+    elif genre == 'Anime':
+        anime_keywords = [
+            'anime', 'jpop', 'j-pop', 'ghibli', 'vocaloid', 'radwimps', 'yoasobi', 'lisa',
+            'naruto', 'one piece', 'attack on titan', 'evangelion', 'tokyo ghoul',
+            'demon slayer', 'jujutsu kaisen', 'your lie in april', 'genshin', 'bleach',
+            'dragon ball', 'hunter x hunter', 'death note', 'suzume', 'weathering with you',
+            'spirited away', 'howl', 'inuyasha', 'sword art online', 'chainsaw man'
+        ]
+        return any(t in ['anime', 'jpop', 'vocaloid', 'j-pop'] for t in tags) or any(k in title or k in artist or k in slug for k in anime_keywords)
+
+    elif genre == 'Gaming':
+        game_keywords = [
+            'video game', 'game', 'gaming', 'nintendo', 'roblox', 'genshin', 'minecraft',
+            'undertale', 'deltarune', 'fnaf', 'zelda', 'mario', 'pokemon', 'toby fox',
+            'hollow knight', 'omori', 'sonic', 'cuphead', 'celeste', 'touhou', 'final fantasy',
+            'dark souls', 'elden ring', 'terraria', 'portal', 'halo', 'tetris', 'persona'
+        ]
+        return any(t in ['video game', 'game', 'gaming'] for t in tags) or any(k in title or k in artist or k in slug for k in game_keywords)
+
+    elif genre == 'Pop':
+        return any('pop' in t for t in tags) or any(k in tags for k in ['r&b', 'soul', 'indie', 'ballad'])
+
+    elif genre == 'Movie':
+        movie_keywords = [
+            'movie', 'soundtrack', 'film', 'disney', 'hans zimmer', 'john williams',
+            'interstellar', 'star wars', 'la la land', 'harry potter'
+        ]
+        return any(t in ['movie', 'soundtrack', 'film', 'disney'] for t in tags) or any(k in title or k in artist or k in slug for k in movie_keywords)
+
+    elif genre == 'Meme':
+        meme_keywords = [
+            'meme', 'phonk', 'viral', 'tiktok', 'rush e', 'rickroll',
+            'never gonna give you up', 'gigachad', 'coffin dance'
+        ]
+        return any(t in ['meme', 'phonk', 'viral', 'tiktok'] for t in tags) or any(k in title or k in artist or k in slug for k in meme_keywords)
+
+    return True
 
 
 class SmoothScrollableFrame(ctk.CTkScrollableFrame):
@@ -195,15 +310,18 @@ class SmoothScrollableFrame(ctk.CTkScrollableFrame):
 class OnlineSheetsDialog(ctk.CTkToplevel):
     """
     Modern modal dialog to browse, search, and download sheets from PlayPianoSheets.com.
+    Equipped with real genre categorization (Classical, Anime, Gaming, Pop, etc.)
+    and local catalog caching for instant loading.
     """
     def __init__(self, parent, target_folder: Path, on_selected=None):
         super().__init__(parent)
         self.target_folder = target_folder
         self.on_selected = on_selected
+        self.cache_file = target_folder / '.playpianosheets_cache.json'
 
-        self.title('PlayPianoSheets.com – Online Sheet Source')
-        self.geometry('540x650')
-        self.minsize(460, 480)
+        self.title('PlayPianoSheets.com – Online Sheet Catalog')
+        self.geometry('560x660')
+        self.minsize(480, 500)
         self.configure(fg_color=COLOR_BG)
 
         icon_path = Path(__file__).with_name('Icon.ico')
@@ -216,7 +334,9 @@ class OnlineSheetsDialog(ctk.CTkToplevel):
         self.transient(parent)
         self.grab_set()
 
-        self._all_slugs: list[str] = []
+        self._all_items: list[dict] = []
+        self._active_genre: str = 'All'
+        self._genre_buttons: dict[str, ctk.CTkButton] = {}
         self._search_timer = None
         self._is_online = False
 
@@ -237,7 +357,7 @@ class OnlineSheetsDialog(ctk.CTkToplevel):
 
         self.status_badge = ctk.CTkLabel(
             hdr,
-            text='CHECKING...',
+            text='CONNECTING...',
             font=FONT_NUMERIC_BOLD,
             text_color=COLOR_TEXT_MUTED,
             fg_color=COLOR_SURFACE,
@@ -250,10 +370,10 @@ class OnlineSheetsDialog(ctk.CTkToplevel):
         # Subtitle
         ctk.CTkLabel(
             self,
-            text='Browse & download over 1,800+ Virtual Piano sheets directly into your active library.',
+            text='Browse and 1-click download over 1,800+ Virtual Piano sheets into your local library.',
             font=FONT_SUBTLE,
             text_color=COLOR_TEXT_MUTED,
-            wraplength=500,
+            wraplength=520,
             justify='left',
         ).pack(fill='x', padx=16, pady=(0, 8))
 
@@ -267,7 +387,7 @@ class OnlineSheetsDialog(ctk.CTkToplevel):
         self.entry_search = ctk.CTkEntry(
             s_box,
             textvariable=self.var_search,
-            placeholder_text='Search song title, artist, or paste playpianosheets.com link...',
+            placeholder_text='Search song title, artist, or paste a playpianosheets link...',
             font=FONT_LABEL,
             fg_color=COLOR_SURFACE,
             border_color=COLOR_BORDER,
@@ -281,7 +401,7 @@ class OnlineSheetsDialog(ctk.CTkToplevel):
             s_box,
             text='Download',
             font=FONT_LABEL_BOLD,
-            width=84,
+            width=88,
             height=34,
             fg_color=COLOR_ACCENT,
             hover_color=COLOR_ACCENT_HOVER,
@@ -291,30 +411,32 @@ class OnlineSheetsDialog(ctk.CTkToplevel):
         )
         self.btn_fetch.pack(side='right')
 
-        # Quick Tag Filter Pills
+        # Genre / Category Filter Bar
         tag_bar = ctk.CTkFrame(self, fg_color='transparent')
         tag_bar.pack(fill='x', padx=16, pady=(0, 8))
 
-        quick_tags = ['Popular', 'Anime', 'Gaming', 'Rush', 'Interstellar', 'Golden', 'Classical']
-        for tag in quick_tags:
+        genres = ['All', 'Classical', 'Anime', 'Gaming', 'Pop', 'Movie', 'Meme']
+        for g in genres:
+            is_active = (g == self._active_genre)
             btn = ctk.CTkButton(
                 tag_bar,
-                text=tag,
-                font=FONT_SUBTLE,
-                width=50,
-                height=22,
-                fg_color=COLOR_SURFACE,
-                hover_color=COLOR_ACCENT,
-                text_color=COLOR_TEXT,
+                text=g,
+                font=FONT_SUBTLE_BOLD,
+                width=54 if len(g) <= 4 else 68,
+                height=24,
+                fg_color=COLOR_ACCENT if is_active else COLOR_SURFACE,
+                hover_color=COLOR_ACCENT_HOVER if is_active else COLOR_BORDER,
+                text_color=COLOR_TEXT if is_active else COLOR_TEXT_MUTED,
                 corner_radius=6,
-                command=lambda t=tag: self._set_tag(t),
+                command=lambda genre=g: self._on_genre_click(genre),
             )
-            btn.pack(side='left', padx=(0, 4))
+            btn.pack(side='left', padx=(0, 5))
+            self._genre_buttons[g] = btn
 
         # Results Count Readout
         self.lbl_count = ctk.CTkLabel(
             self,
-            text='Connecting to PlayPianoSheets.com...',
+            text='Loading catalog...',
             font=FONT_SUBTLE,
             text_color=COLOR_TEXT_MUTED,
         )
@@ -331,27 +453,67 @@ class OnlineSheetsDialog(ctk.CTkToplevel):
         )
         self.scroll_results.pack(fill='both', expand=True, padx=16, pady=(0, 10))
 
-    def _set_tag(self, tag: str):
-        if tag == 'Popular':
-            self.var_search.set('')
-        else:
-            self.var_search.set(tag.lower())
+    def _on_genre_click(self, genre: str):
+        """Switch active music category without modifying the search input box."""
+        if self._active_genre == genre:
+            return
+
+        self._active_genre = genre
+        for g_name, btn in self._genre_buttons.items():
+            if g_name == genre:
+                btn.configure(
+                    fg_color=COLOR_ACCENT,
+                    hover_color=COLOR_ACCENT_HOVER,
+                    text_color=COLOR_TEXT,
+                )
+            else:
+                btn.configure(
+                    fg_color=COLOR_SURFACE,
+                    hover_color=COLOR_BORDER,
+                    text_color=COLOR_TEXT_MUTED,
+                )
+
+        self._apply_filter(self.var_search.get())
 
     def _check_and_load_catalog(self):
+        # 1. Fast path: load local cache immediately if available
+        if self.cache_file.exists():
+            try:
+                with open(self.cache_file, 'r', encoding='utf-8') as f:
+                    cached_items = json.load(f)
+                if cached_items and isinstance(cached_items, list):
+                    self._all_items = cached_items
+                    self.status_badge.configure(text='● CACHED', text_color='#74C0FC')
+                    self._apply_filter('')
+            except Exception:
+                pass
+
+        # 2. Background thread: probe internet & sync fresh catalog
         def worker():
             is_on = check_internet()
             self._is_online = is_on
             if not is_on:
-                self.after(0, self._render_offline)
+                if not self._all_items:
+                    self.after(0, self._render_offline)
+                else:
+                    self.after(0, lambda: self.status_badge.configure(text='● OFFLINE (CACHED)', text_color='#FFA94D'))
                 return
 
             self.after(0, lambda: self.status_badge.configure(text='● ONLINE', text_color='#51CF66'))
             try:
-                slugs = fetch_playpianosheets_catalog()
-                self._all_slugs = slugs
-                self.after(0, lambda: self._apply_filter(''))
+                items = fetch_playpianosheets_catalog()
+                if items:
+                    self._all_items = items
+                    # Save local cache
+                    try:
+                        with open(self.cache_file, 'w', encoding='utf-8') as f:
+                            json.dump(items, f, ensure_ascii=False)
+                    except Exception:
+                        pass
+                self.after(0, lambda: self._apply_filter(self.var_search.get()))
             except Exception as e:
-                self.after(0, lambda: self.lbl_count.configure(text=f'Error loading catalog: {e}'))
+                if not self._all_items:
+                    self.after(0, lambda: self.lbl_count.configure(text=f'Error loading catalog: {e}'))
 
         threading.Thread(target=worker, daemon=True).start()
 
@@ -404,47 +566,72 @@ class OnlineSheetsDialog(ctk.CTkToplevel):
         self._search_timer = self.after(150, lambda: self._apply_filter(self.var_search.get()))
 
     def _apply_filter(self, query: str):
-        if not self._all_slugs:
+        if not self._all_items:
             return
 
+        # 1. Filter by active category/genre
+        genre = self._active_genre
+        matched = [it for it in self._all_items if item_matches_genre(it, genre)]
+
+        # 2. Filter by search query if provided
         q = query.strip().lower()
+        if q:
+            keywords = q.split()
+            filtered = []
+            for it in matched:
+                text_corpus = f"{it.get('title', '')} {it.get('artist', '')} {' '.join(it.get('tags', []))} {it.get('slug', '')}".lower()
+                if all(kw in text_corpus for kw in keywords):
+                    filtered.append(it)
+            matched = filtered
+
+        # 3. If query is empty and genre is 'All', prioritize popular/featured sheets
+        if not q and genre == 'All':
+            popular_slugs = {
+                'golden-hour', 'rush-e', 'interstellar', 'river-flows-in-you', 'fur-elise',
+                'runaway', 'another-love', 'blue', 'fnaf-song-1', 'minecraft-sweden',
+                'canon-in-d', 'moonlight-sonata-3rd-movement', 'super-mario-bros-theme',
+                'erika', 'blue-bird-naruto-shippuden'
+            }
+            featured = [it for it in matched if it.get('slug') in popular_slugs]
+            others = [it for it in matched if it.get('slug') not in popular_slugs]
+            matched = featured + others
+
+        # 4. Update count label
+        total_in_genre = len(matched)
         if not q:
-            popular = [
-                'golden-hour', 'rush-e', 'interstellar', 'river-flows-in-you', 'fur-elise', 'runaway',
-                'another-love', 'blue', 'fnaf-song-1', 'minecraft-sweden', 'blue-bird-naruto-shippuden',
-                'moonlight-sonata-3rd-movement', 'super-mario-bros-theme', 'erika', 'canon-in-d'
-            ]
-            matches = [s for s in popular if s in self._all_slugs]
-            matches += [s for s in self._all_slugs if s not in matches][:50 - len(matches)]
-            self.lbl_count.configure(
-                text=f'Showing {len(matches)} Popular / Featured Sheets (Total: {len(self._all_slugs):,})'
-            )
+            if genre == 'All':
+                self.lbl_count.configure(
+                    text=f'Showing {min(60, total_in_genre)} Featured & All Sheets (Total: {len(self._all_items):,})'
+                )
+            else:
+                self.lbl_count.configure(
+                    text=f'Showing {min(60, total_in_genre)} {genre} Sheets (Total: {total_in_genre:,})'
+                )
         else:
-            matches = [s for s in self._all_slugs if q in s or q in s.replace('-', ' ')][:60]
             self.lbl_count.configure(
-                text=f'Found {len(matches)} matches for "{q}" (Total: {len(self._all_slugs):,})'
+                text=f'Found {total_in_genre} matches in {genre} for "{q}"'
             )
 
-        self._render_results(matches)
+        self._render_results(matched[:60])
 
-    def _render_results(self, slugs: list[str]):
+    def _render_results(self, items: list[dict]):
         for w in self.scroll_results.winfo_children():
             w.destroy()
 
-        if not slugs:
+        if not items:
             ctk.CTkLabel(
                 self.scroll_results,
-                text='No sheets found matching your search.\nTry pasting a direct link or different keywords.',
+                text=f'No sheets found in "{self._active_genre}" matching your search.\nTry clearing the search box or switching categories.',
                 font=FONT_LABEL,
                 text_color=COLOR_TEXT_MUTED,
                 justify='center',
             ).pack(pady=30)
             return
 
-        for slug in slugs:
-            self._create_card(slug)
+        for it in items:
+            self._create_card(it)
 
-    def _create_card(self, slug: str):
+    def _create_card(self, item: dict):
         card = ctk.CTkFrame(
             self.scroll_results,
             fg_color=COLOR_SURFACE,
@@ -455,9 +642,9 @@ class OnlineSheetsDialog(ctk.CTkToplevel):
         card.pack(fill='x', pady=3)
 
         left = ctk.CTkFrame(card, fg_color='transparent')
-        left.pack(side='left', fill='both', expand=True, padx=12, pady=8)
+        left.pack(side='left', fill='both', expand=True, padx=12, pady=7)
 
-        title = slug_to_title(slug)
+        title = item.get('title') or slug_to_title(item.get('slug', ''))
         ctk.CTkLabel(
             left,
             text=title,
@@ -466,19 +653,35 @@ class OnlineSheetsDialog(ctk.CTkToplevel):
             anchor='w',
         ).pack(fill='x')
 
+        # Subtitle: Artist + Tags / Genres
+        sub_parts = []
+        artist = item.get('artist', '').strip()
+        if artist:
+            sub_parts.append(f"by {artist}")
+
+        tags = item.get('tags', [])
+        if tags:
+            top_tags = [t.title() for t in tags[:3]]
+            tag_str = ', '.join(top_tags)
+            sub_parts.append(f"• {tag_str}")
+
+        if not sub_parts:
+            sub_parts.append(f"playpianosheets.com/sheets/{item.get('slug', '')}")
+
         ctk.CTkLabel(
             left,
-            text=f"playpianosheets.com/sheets/{slug}",
+            text=' '.join(sub_parts),
             font=FONT_SUBTLE,
             text_color=COLOR_TEXT_MUTED,
             anchor='w',
         ).pack(fill='x')
 
+        slug = item.get('slug', '')
         btn = ctk.CTkButton(
             card,
             text='Download',
-            font=FONT_SUBTLE,
-            width=80,
+            font=FONT_SUBTLE_BOLD,
+            width=84,
             height=28,
             fg_color=COLOR_ACCENT,
             hover_color=COLOR_ACCENT_HOVER,
@@ -486,7 +689,7 @@ class OnlineSheetsDialog(ctk.CTkToplevel):
             corner_radius=6,
         )
         btn.configure(command=lambda s=slug, b=btn: self._start_download(s, b))
-        btn.pack(side='right', padx=12, pady=8)
+        btn.pack(side='right', padx=12, pady=7)
 
     def _start_download(self, slug_or_url: str, btn: ctk.CTkButton | None = None):
         if btn:
