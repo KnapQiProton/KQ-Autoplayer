@@ -1,3 +1,4 @@
+#META {"bpm": 120, "subdiv": 4.0, "note": ""}
 customtkinter>=6.0.0
 pynput>=1.8.0
 pywin32>=306

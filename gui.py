@@ -17,7 +17,9 @@ from __future__ import annotations
 
 import logging
 import sys
+import threading
 import time
+import webbrowser
 from pathlib import Path
 from queue import Empty, Queue
 import tkinter as tk
@@ -28,6 +30,9 @@ from pynput.keyboard import Key, KeyCode, Listener
 
 import autoplayer_core as core
 from playpianosheets_source import OnlineSheetsDialog, check_internet, SmoothScrollableFrame
+import updater
+
+__version__ = "1.0.0"
 
 # --- Logger Initialization ---
 logger = logging.getLogger('KQAutoplayer.GUI')
@@ -58,6 +63,7 @@ FONT_TITLE = ('Segoe UI', 15, 'bold')
 FONT_LABEL = ('Segoe UI', 12)
 FONT_LABEL_BOLD = ('Segoe UI', 12, 'bold')
 FONT_SUBTLE = ('Segoe UI', 10)
+FONT_SUBTLE_BOLD = ('Segoe UI', 10, 'bold')
 FONT_NUMERIC = ('Consolas', 12)
 FONT_NUMERIC_BOLD = ('Consolas', 12, 'bold')
 FONT_TIMER = ('Consolas', 13, 'bold')
@@ -217,6 +223,7 @@ class App(ctk.CTk):
         self._suspend_trace = False
         self._last_valid_bpm = getattr(CFG, 'bpm', 120)
         self._last_valid_sub = getattr(CFG, 'subdiv', 4.0)
+        self._playlist: list[Path] = []
 
         # Debounced Edge-Triggered Hotkey Engine
         self._pressed: set[str] = set()
@@ -235,11 +242,14 @@ class App(ctk.CTk):
         self._hk_listener.start()
 
         self.after(50, self._poll)
+        self.after(1000, self._check_updates_background)
 
     def _build_ui(self):
         # 1. Header Bar (Pinned Top)
         hdr_frame = ctk.CTkFrame(self, fg_color='transparent')
         hdr_frame.pack(side='top', fill='x', padx=20, pady=(14, 6))
+        self.hdr_frame = hdr_frame
+        self.update_badge = None
 
         ctk.CTkLabel(
             hdr_frame,
@@ -259,6 +269,21 @@ class App(ctk.CTk):
             pady=2,
         )
         self.status_pill.pack(side='right')
+
+        # Manual Check Update button in header
+        self.btn_check_update = ctk.CTkButton(
+            hdr_frame,
+            text='🔄 Check Update',
+            width=96,
+            height=22,
+            font=FONT_SUBTLE,
+            fg_color=COLOR_SURFACE,
+            hover_color=COLOR_ACCENT,
+            text_color=COLOR_TEXT,
+            corner_radius=6,
+            command=self._manual_check_update,
+        )
+        self.btn_check_update.pack(side='right', padx=(0, 6))
 
         # 2. Bottom Player Bar (Pinned Bottom - Always Visible)
         btm_container = ctk.CTkFrame(self, fg_color='transparent')
@@ -326,6 +351,21 @@ class App(ctk.CTk):
         )
         self.btn_play.pack(side='right')
 
+        self.btn_play_all = ctk.CTkButton(
+            btm_bar,
+            text='▶▶',
+            width=46,
+            height=46,
+            corner_radius=23,
+            font=FONT_LABEL_BOLD,
+            fg_color=COLOR_SURFACE,
+            hover_color=COLOR_ACCENT,
+            text_color=COLOR_TEXT,
+            command=self._play_all_playlist,
+        )
+        self.btn_play_all.pack(side='right', padx=(0, 10))
+        MinimalistTip(self.btn_play_all, "Play All in Playlist Queue")
+
         # 3. Main Adaptive Body (Smooth-Scrolling & Responsive)
         body = SmoothScrollableFrame(
             self,
@@ -360,6 +400,8 @@ class App(ctk.CTk):
             'Toggle key': 'Global hotkey to Start / Pause playback without delay',
             'Target': 'Window that must be active for notes to play',
             'Auto': 'Automatically pauses playback when the target window loses focus',
+            'Sustain': 'Holds Spacebar for piano sustain pedal simulation; dampens on bar lines (|) and rests',
+            'Playlist': 'Queue multiple sheets to play continuously in sequence without stopping',
             'Note': 'Persistent metadata note stored directly inside the active sheet header',
         }
 
@@ -670,6 +712,72 @@ class App(ctk.CTk):
         self.switch_auto.pack(side='left')
         make_info_icon(sw_box, info_map['Auto']).pack(side='left', padx=(6, 0))
 
+        # 10. Sustain Pedal Switch
+        sus_box = ctk.CTkFrame(body, fg_color='transparent')
+        sus_box.pack(fill='x', pady=(2, 4))
+
+        self.var_sustain = tk.BooleanVar(value=getattr(CFG, 'use_sustain', False))
+        self.switch_sustain = ctk.CTkSwitch(
+            sus_box,
+            text='Use Sustain Pedal (Spacebar)',
+            variable=self.var_sustain,
+            font=FONT_LABEL,
+            text_color=COLOR_TEXT,
+            progress_color=COLOR_ACCENT,
+            button_color=COLOR_THUMB,
+            button_hover_color=COLOR_THUMB_HOVER,
+            fg_color=COLOR_BORDER,
+            command=self._toggle_sustain,
+        )
+        self.switch_sustain.pack(side='left')
+        make_info_icon(sus_box, info_map['Sustain']).pack(side='left', padx=(6, 0))
+
+        # 11. Playlist Queue Section
+        pl_hdr = ctk.CTkFrame(body, fg_color='transparent')
+        pl_hdr.pack(fill='x', pady=(8, 2))
+
+        ctk.CTkLabel(pl_hdr, text='Playlist Queue', font=FONT_LABEL_BOLD, text_color=COLOR_TEXT).pack(side='left')
+        make_info_icon(pl_hdr, info_map['Playlist']).pack(side='left', padx=(4, 0))
+
+        self.btn_clear_pl = ctk.CTkButton(
+            pl_hdr,
+            text='Clear',
+            font=FONT_SUBTLE,
+            width=50,
+            height=22,
+            fg_color=COLOR_SURFACE,
+            hover_color='#E03131',
+            text_color=COLOR_TEXT_MUTED,
+            corner_radius=6,
+            command=self._clear_playlist,
+        )
+        self.btn_clear_pl.pack(side='right')
+
+        self.btn_add_pl = ctk.CTkButton(
+            pl_hdr,
+            text='+ Add Current',
+            font=FONT_SUBTLE_BOLD,
+            width=90,
+            height=22,
+            fg_color=COLOR_ACCENT,
+            hover_color=COLOR_ACCENT_HOVER,
+            text_color=COLOR_TEXT,
+            corner_radius=6,
+            command=self._add_current_to_playlist,
+        )
+        self.btn_add_pl.pack(side='right', padx=(0, 6))
+
+        self.frame_playlist = ctk.CTkScrollableFrame(
+            body,
+            height=100,
+            fg_color=COLOR_SURFACE_DARK,
+            scrollbar_fg_color='transparent',
+            scrollbar_button_color=COLOR_BORDER,
+            corner_radius=8,
+        )
+        self.frame_playlist.pack(fill='x', pady=(2, 6))
+        self._refresh_playlist_ui()
+
         # Load initial items
         self._refresh_sheets()
         self._refresh_windows()
@@ -722,6 +830,61 @@ class App(ctk.CTk):
 
     def _open_online_browser(self):
         OnlineSheetsDialog(self, CFG.folder, on_selected=self._on_online_sheet_selected)
+
+    # --- GitHub Release Update Methods ---
+    def _check_updates_background(self):
+        def worker():
+            rel = updater.get_latest_github_release()
+            if rel and updater.is_update_available(__version__, rel.get('version', '')):
+                self.after(0, lambda r=rel: self._show_update_badge(r))
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _show_update_badge(self, release: dict):
+        if self.update_badge:
+            return
+        ver = release.get('version', 'v1.x.x')
+        url = release.get('url', 'https://github.com/KnapQiProton/KQ-Autoplayer/releases')
+        badge = ctk.CTkLabel(
+            self.hdr_frame,
+            text=f"🆕 {ver}",
+            font=FONT_SUBTLE_BOLD,
+            text_color='#51CF66',
+            fg_color=COLOR_SURFACE,
+            corner_radius=6,
+            padx=8,
+            pady=2,
+            cursor='hand2',
+        )
+        badge.pack(side='right', padx=(0, 6))
+        badge.bind('<Button-1>', lambda _e: webbrowser.open(url))
+        MinimalistTip(badge, f"New version {ver} is available!\nClick to open download page on GitHub.")
+        self.update_badge = badge
+        logger.info("Update badge displayed for %s", ver)
+
+    def _manual_check_update(self):
+        self.btn_check_update.configure(text='Checking...', state='disabled')
+
+        def worker():
+            rel = updater.get_latest_github_release()
+            if not rel:
+                self.after(0, lambda: self._on_manual_check_result('failed'))
+            elif updater.is_update_available(__version__, rel.get('version', '')):
+                self.after(0, lambda r=rel: self._on_manual_check_result('available', r))
+            else:
+                self.after(0, lambda: self._on_manual_check_result('uptodate'))
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _on_manual_check_result(self, status: str, release: dict | None = None):
+        if status == 'available' and release:
+            self._show_update_badge(release)
+            self.btn_check_update.configure(text='Update Available!', state='normal', fg_color='#2B8A3E')
+        elif status == 'uptodate':
+            self.btn_check_update.configure(text='✓ Up to Date', state='normal', fg_color=COLOR_SURFACE)
+            self.after(3000, lambda: self.btn_check_update.configure(text='🔄 Check Update', fg_color=COLOR_SURFACE))
+        else:
+            self.btn_check_update.configure(text='Check Failed', state='normal', fg_color=COLOR_SURFACE)
+            self.after(3000, lambda: self.btn_check_update.configure(text='🔄 Check Update', fg_color=COLOR_SURFACE))
 
     def _on_online_sheet_selected(self, sheet_file: Path):
         self._refresh_sheets()
@@ -890,6 +1053,7 @@ class App(ctk.CTk):
             self.toggle_combo = parse_combo(CFG.toggle)
             win_txt = self.var_win.get().strip()
             CFG.target_title = win_txt if win_txt else None
+            CFG.use_sustain = self.var_sustain.get()
 
             if self.var_auto.get() and not CFG.target_title:
                 messagebox.showwarning('Target window required', 'Auto-play is enabled but no target window selected.')
@@ -900,6 +1064,102 @@ class App(ctk.CTk):
         except Exception as exc:
             messagebox.showerror('Config error', str(exc))
             return False
+
+    def _toggle_sustain(self):
+        CFG.use_sustain = self.var_sustain.get()
+        core.save_cfg()
+        logger.info("Sustain pedal toggled: %s", CFG.use_sustain)
+
+    def _add_current_to_playlist(self):
+        if not CFG.sheet or not CFG.sheet.exists():
+            messagebox.showwarning("No Sheet Selected", "Please select a valid sheet before adding to playlist.")
+            return
+        if CFG.sheet in self._playlist:
+            logger.info("Sheet '%s' already in playlist.", CFG.sheet.name)
+            return
+        self._playlist.append(CFG.sheet)
+        logger.info("Added '%s' to playlist queue. Total items: %d", CFG.sheet.name, len(self._playlist))
+        self._refresh_playlist_ui()
+
+    def _remove_from_playlist(self, idx: int):
+        if 0 <= idx < len(self._playlist):
+            removed = self._playlist.pop(idx)
+            logger.info("Removed '%s' from playlist.", removed.name)
+            self._refresh_playlist_ui()
+
+    def _clear_playlist(self):
+        self._playlist.clear()
+        logger.info("Playlist queue cleared.")
+        self._refresh_playlist_ui()
+
+    def _refresh_playlist_ui(self):
+        for widget in self.frame_playlist.winfo_children():
+            widget.destroy()
+
+        if not self._playlist:
+            ctk.CTkLabel(
+                self.frame_playlist,
+                text="Queue empty. Click '+ Add Current' to queue songs.",
+                font=FONT_SUBTLE,
+                text_color=COLOR_TEXT_MUTED,
+            ).pack(pady=34)
+            return
+
+        for i, sheet_path in enumerate(self._playlist):
+            row = ctk.CTkFrame(self.frame_playlist, fg_color=COLOR_SURFACE, corner_radius=6, height=28)
+            row.pack(fill='x', pady=2, padx=4)
+
+            lbl_name = ctk.CTkLabel(
+                row,
+                text=f"{i + 1}.  {sheet_path.stem}",
+                font=FONT_SUBTLE_BOLD,
+                text_color=COLOR_TEXT,
+                anchor='w',
+            )
+            lbl_name.pack(side='left', fill='x', expand=True, padx=(8, 4), pady=2)
+
+            btn_del = ctk.CTkButton(
+                row,
+                text='✕',
+                font=FONT_SUBTLE_BOLD,
+                width=24,
+                height=22,
+                fg_color='transparent',
+                hover_color='#E03131',
+                text_color=COLOR_TEXT_MUTED,
+                corner_radius=4,
+                command=lambda index=i: self._remove_from_playlist(index),
+            )
+            btn_del.pack(side='right', padx=(0, 4), pady=2)
+
+    def _play_all_playlist(self):
+        if not self._playlist:
+            if CFG.sheet and CFG.sheet.exists():
+                self._playlist.append(CFG.sheet)
+                self._refresh_playlist_ui()
+            else:
+                messagebox.showwarning("Playlist Empty", "Please add songs to the playlist queue first.")
+                return
+
+        if self.player and not self.player.is_alive():
+            self._stop_player()
+
+        if not self.player:
+            if not self._apply_cfg():
+                return
+            first_sheet = self._playlist[0]
+            CFG.sheet = first_sheet
+            self.var_sheet.set(first_sheet.name)
+            self._tok_done = 0
+            self.total_tokens = 0
+            self.prog.set(0.0)
+            logger.info("Starting playback of %d playlist tracks...", len(self._playlist))
+            self.player = core.Player(first_sheet, self.queue, playlist=list(self._playlist))
+            self.player.start()
+            self._update_fab_icon()
+        else:
+            self.player.toggle()
+            self._update_fab_icon()
 
     def _start_player(self):
         self.total_tokens = 0
@@ -937,12 +1197,15 @@ class App(ctk.CTk):
         is_playing = self.player and self.player.resume_evt.is_set()
         self.btn_play.configure(text='⏸' if is_playing else '▶')
         if self.player:
+            track_info = ""
+            if hasattr(self.player, 'playlist') and len(self.player.playlist) > 1:
+                track_info = f" (Track {self.player.current_playlist_index + 1}/{len(self.player.playlist)})"
             if is_playing:
                 self.status_pill.configure(text='PLAYING', text_color='#51CF66')
-                self.lbl_subtext.configure(text='Playing active song')
+                self.lbl_subtext.configure(text=f'Playing active song{track_info}')
             else:
                 self.status_pill.configure(text='PAUSED', text_color='#FF922B')
-                self.lbl_subtext.configure(text='Paused (press hotkey to resume)')
+                self.lbl_subtext.configure(text=f'Paused{track_info} (press hotkey to resume)')
                 self.lbl_visualizer.configure(text='NOTE: (PAUSED)', text_color='#FF922B')
         else:
             self.status_pill.configure(text='IDLE', text_color=COLOR_TEXT_MUTED)
@@ -1000,6 +1263,33 @@ class App(ctk.CTk):
                             self.lbl_visualizer.configure(text="NOTE: | (rest)", text_color='#FF922B')
                         else:
                             self.lbl_visualizer.configure(text=f"NOTE: '{tok}'", text_color='#74C0FC')
+                elif tag == 'playlist_next':
+                    next_name = str(d)
+                    logger.info("Playlist advancing to next song: %s", next_name)
+                    self.var_sheet.set(next_name)
+                    self.lbl_subtext.configure(text=f"Playing: {Path(next_name).stem}")
+                    self.prog.set(0.0)
+                    self._tok_done = 0
+                    self._update_fab_icon()
+                    # Silently update timing and note metadata without interrupting player thread
+                    try:
+                        next_path = CFG.folder / next_name
+                        CFG.sheet = next_path
+                        meta = core.read_sheet_meta(next_path)
+                        self._suspend_trace = True
+                        bpm_val = meta.get('bpm', 120)
+                        sub_val = meta.get('subdiv', 4.0)
+                        self.var_bpm.set(str(bpm_val))
+                        self.var_sub.set(str(sub_val))
+                        self._last_valid_bpm = bpm_val
+                        self._last_valid_sub = sub_val
+                        self.txt_note.delete('1.0', 'end')
+                        note = meta.get('note', '')
+                        if note:
+                            self.txt_note.insert('1.0', note)
+                        self._suspend_trace = False
+                    except Exception as meta_exc:
+                        logger.warning("Could not update metadata for playlist track: %s", meta_exc)
                 elif tag == 'done':
                     logger.info("Song playback finished.")
                     self._stop_player()

@@ -8,6 +8,7 @@ BeautifulSoup fallback parsing, and robust error handling.
 """
 from __future__ import annotations
 
+from datetime import datetime, timedelta
 import json
 import logging
 import re
@@ -69,6 +70,56 @@ def slug_to_title(slug: str) -> str:
     """Format hyphenated slug into readable title casing."""
     parts = slug.split('-')
     return ' '.join(p.capitalize() for p in parts)
+
+
+def save_catalog_cache(cache_file: Path, items: list) -> None:
+    """Save catalog items with an ISO timestamp."""
+    try:
+        payload = {
+            "timestamp": datetime.now().isoformat(),
+            "items": items,
+        }
+        with open(cache_file, 'w', encoding='utf-8') as f:
+            json.dump(payload, f, ensure_ascii=False)
+        logger.info("Saved %d catalog items to cache (%s)", len(items), cache_file)
+    except Exception as exc:
+        logger.warning("Failed to save catalog cache: %s", exc)
+
+
+def load_catalog_cache(cache_file: Path) -> tuple[list, bool]:
+    """
+    Load catalog items from cache.
+    Returns (items, is_fresh).
+    is_fresh is True if the cache timestamp is less than 24 hours old.
+    """
+    if not cache_file.exists():
+        return [], False
+
+    try:
+        with open(cache_file, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+
+        # Handle legacy raw list cache
+        if isinstance(data, list):
+            return data, False
+
+        # Handle new dict format with timestamp
+        if isinstance(data, dict):
+            items = data.get("items", [])
+            ts_str = data.get("timestamp")
+            is_fresh = False
+            if ts_str:
+                try:
+                    ts = datetime.fromisoformat(ts_str)
+                    if datetime.now() - ts < timedelta(hours=24):
+                        is_fresh = True
+                except Exception:
+                    is_fresh = False
+            return items, is_fresh
+    except Exception as exc:
+        logger.warning("Failed to load catalog cache: %s", exc)
+        return [], False
+    return [], False
 
 
 def fetch_playpianosheets_catalog() -> list[dict]:
@@ -453,6 +504,20 @@ class OnlineSheetsDialog(ctk.CTkToplevel):
         )
         self.status_badge.pack(side='right')
 
+        self.btn_refresh = ctk.CTkButton(
+            hdr,
+            text='🔄 Refresh',
+            font=FONT_SUBTLE,
+            width=76,
+            height=24,
+            fg_color=COLOR_SURFACE,
+            hover_color=COLOR_ACCENT,
+            text_color=COLOR_TEXT,
+            corner_radius=6,
+            command=self._force_refresh_catalog,
+        )
+        self.btn_refresh.pack(side='right', padx=(0, 8))
+
         # Subtitle
         ctk.CTkLabel(
             self,
@@ -563,16 +628,14 @@ class OnlineSheetsDialog(ctk.CTkToplevel):
 
     def _check_and_load_catalog(self):
         # 1. Fast path: load local cache immediately if available
-        if self.cache_file.exists():
-            try:
-                with open(self.cache_file, 'r', encoding='utf-8') as f:
-                    cached_items = json.load(f)
-                if cached_items and isinstance(cached_items, list):
-                    self._all_items = cached_items
-                    self.status_badge.configure(text='● CACHED', text_color='#74C0FC')
-                    self._apply_filter('')
-            except Exception as exc:
-                logger.warning("Error reading local cache: %s", exc)
+        cached_items, is_fresh = load_catalog_cache(self.cache_file)
+        if cached_items:
+            self._all_items = cached_items
+            if is_fresh:
+                self.status_badge.configure(text='● CACHED', text_color='#74C0FC')
+            else:
+                self.status_badge.configure(text='⚠ CACHED (OLD)', text_color='#FFA94D')
+            self._apply_filter('')
 
         # 2. Background thread: probe internet & sync fresh catalog
         def worker():
@@ -590,12 +653,7 @@ class OnlineSheetsDialog(ctk.CTkToplevel):
                 items = fetch_playpianosheets_catalog()
                 if items:
                     self._all_items = items
-                    # Save local cache
-                    try:
-                        with open(self.cache_file, 'w', encoding='utf-8') as f:
-                            json.dump(items, f, ensure_ascii=False)
-                    except Exception as ce:
-                        logger.warning("Failed to save local catalog cache: %s", ce)
+                    save_catalog_cache(self.cache_file, items)
                 self.after(0, lambda: self._apply_filter(self.var_search.get()))
             except Exception as e:
                 logger.error("Failed to load catalog: %s", e)
@@ -606,6 +664,35 @@ class OnlineSheetsDialog(ctk.CTkToplevel):
                             text='Gagal mengambil katalog online. Situs mungkin sedang diperbarui atau koneksi terputus. Silakan coba lagi.'
                         )
                     )
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _force_refresh_catalog(self):
+        """Force re-fetch catalog from playpianosheets.com, bypass local cache, and update UI."""
+        self.btn_refresh.configure(text='Syncing...', state='disabled')
+        self.status_badge.configure(text='SYNCING...', text_color='#74C0FC')
+
+        def worker():
+            try:
+                is_on = check_internet()
+                self._is_online = is_on
+                if not is_on:
+                    self.after(0, lambda: self.status_badge.configure(text='● OFFLINE', text_color='#FA5252'))
+                    return
+
+                items = fetch_playpianosheets_catalog()
+                if items:
+                    self._all_items = items
+                    save_catalog_cache(self.cache_file, items)
+                    self.after(0, lambda: self.status_badge.configure(text='● ONLINE', text_color='#51CF66'))
+                    self.after(0, lambda: self._apply_filter(self.var_search.get()))
+                else:
+                    self.after(0, lambda: self.status_badge.configure(text='⚠ SYNC FAILED', text_color='#FFA94D'))
+            except Exception as exc:
+                logger.error("Force refresh failed: %s", exc)
+                self.after(0, lambda: self.status_badge.configure(text='⚠ ERROR', text_color='#FA5252'))
+            finally:
+                self.after(0, lambda: self.btn_refresh.configure(text='🔄 Refresh', state='normal'))
 
         threading.Thread(target=worker, daemon=True).start()
 

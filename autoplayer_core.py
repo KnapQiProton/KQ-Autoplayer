@@ -142,6 +142,7 @@ SHIFT_MAP: Dict[str, str] = {
 SHIFT_REV: Dict[str, str] = {v: k for k, v in SHIFT_MAP.items()}
 
 OEM_MAP: Dict[str, int] = {
+    ' ': 0x20,  # Spacebar (Virtual Key code for Sustain Pedal)
     '-': 0xBD,
     '=': 0xBB,
     '[': 0xDB,
@@ -361,6 +362,7 @@ class Config:
     auto_pause: bool = True
     dark: bool = False
     stealth_mode: bool = True  # STEALTH_MODE (Low-level Win32 hardware SendInput)
+    use_sustain: bool = False   # Sustain Pedal Simulation (Spacebar hold/damping)
     target_title: Optional[str] = field(default=None, repr=False)
     geometry: str | None = None
 
@@ -442,15 +444,18 @@ def windows() -> list[Tuple[int, str]]:
 
 
 class Player(threading.Thread):
-    def __init__(self, sheet: Path, queue: Queue):
+    def __init__(self, sheet: Path, queue: Queue, playlist: list[Path] | None = None):
         super().__init__(daemon=True)
         self.sheet = sheet
         self.q = queue
+        self.playlist = playlist if playlist else [sheet]
+        self.current_playlist_index = 0
         self.resume_evt = threading.Event()
         self.resume_evt.set()
         self.stop_evt = threading.Event()
         self._last_token_time = time.time()
         self._last_shift_needed = False
+        self._sustain_held = False
 
     def toggle(self) -> None:
         if self.resume_evt.is_set():
@@ -528,110 +533,173 @@ class Player(threading.Thread):
 
     def run(self) -> None:
         try:
-            logger.info("Starting playback of '%s' (Stealth Mode: %s)...", self.sheet.name, CFG.stealth_mode)
-            raw = self.sheet.read_text('utf-8')
-            toks = list(self._tokenise(raw))
-            total = len(toks)
-            self.q.put(('total', total))
-            t0 = time.time()
-            self._last_token_time = time.time()
+            if CFG.use_sustain:
+                press(' ')
+                self._sustain_held = True
+                logger.info("Sustain pedal engaged (Spacebar).")
 
-            for idx, tok in enumerate(toks, 1):
+            while self.current_playlist_index < len(self.playlist):
+                self.sheet = self.playlist[self.current_playlist_index]
                 if self.stop_evt.is_set():
                     break
 
-                now = time.time()
-                ios = now - self._last_token_time
-                self._last_token_time = now
-                density = max(0.0, min(1.0, (0.15 - ios) / 0.1))
-                (σ, span, drift, h_jit, p_drop, p_slip, p_shift) = self._params(density)
-                robot = (σ == 0)
+                logger.info(
+                    "Starting playback of '%s' (Track %d/%d, Stealth: %s, Sustain: %s)...",
+                    self.sheet.name,
+                    self.current_playlist_index + 1,
+                    len(self.playlist),
+                    CFG.stealth_mode,
+                    CFG.use_sustain,
+                )
 
-                if self._last_shift_needed and isinstance(tok, str) and tok in SHIFT_REV and random.random() < p_shift:
-                    tok = SHIFT_REV[tok]
+                raw = self.sheet.read_text('utf-8')
+                toks = list(self._tokenise(raw))
+                total = len(toks)
+                self.q.put(('total', total))
+                t0 = time.time()
+                self._last_token_time = time.time()
 
-                slipped = False
-                if p_drop and random.random() < p_drop:
-                    self.q.put(('progress', (idx, tok)))
-                    self._last_shift_needed = False
-                    continue
-
-                if p_slip and isinstance(tok, str) and random.random() < p_slip:
-                    tok = self._neighbour(tok)
-                    slipped = True
-
-                sec = CFG.sec_per_tok() * (1 + drift * math.sin(2 * math.pi * 0.25 * (time.time() - t0)))
-                onset_off = random.gauss(0, σ) if σ > 0 else 0.0
-
-                # Window focus check & pause loop
-                while (not self.resume_evt.is_set()) or (
-                    CFG.auto_pause
-                    and CFG.target_title
-                    and not self._window_matches(CFG.target_title, win32gui.GetWindowText(win32gui.GetForegroundWindow()))
-                ):
+                for idx, tok in enumerate(toks, 1):
                     if self.stop_evt.is_set():
                         break
-                    time.sleep(0.015)
+
+                    now = time.time()
+                    ios = now - self._last_token_time
+                    self._last_token_time = now
+                    density = max(0.0, min(1.0, (0.15 - ios) / 0.1))
+                    (σ, span, drift, h_jit, p_drop, p_slip, p_shift) = self._params(density)
+                    robot = (σ == 0)
+
+                    if self._last_shift_needed and isinstance(tok, str) and tok in SHIFT_REV and random.random() < p_shift:
+                        tok = SHIFT_REV[tok]
+
+                    slipped = False
+                    if p_drop and random.random() < p_drop:
+                        self.q.put(('progress', (idx, tok)))
+                        self._last_shift_needed = False
+                        continue
+
+                    if p_slip and isinstance(tok, str) and random.random() < p_slip:
+                        tok = self._neighbour(tok)
+                        slipped = True
+
+                    sec = CFG.sec_per_tok() * (1 + drift * math.sin(2 * math.pi * 0.25 * (time.time() - t0)))
+                    onset_off = random.gauss(0, σ) if σ > 0 else 0.0
+
+                    # Window focus check & pause loop
+                    was_paused = False
+                    while (not self.resume_evt.is_set()) or (
+                        CFG.auto_pause
+                        and CFG.target_title
+                        and not self._window_matches(CFG.target_title, win32gui.GetWindowText(win32gui.GetForegroundWindow()))
+                    ):
+                        if self.stop_evt.is_set():
+                            break
+                        if CFG.use_sustain and self._sustain_held:
+                            release(' ')
+                            self._sustain_held = False
+                            was_paused = True
+                        time.sleep(0.015)
+
+                    if self.stop_evt.is_set():
+                        break
+
+                    if was_paused and CFG.use_sustain and not self._sustain_held:
+                        press(' ')
+                        self._sustain_held = True
+
+                    if onset_off > 0:
+                        time.sleep(onset_off)
+
+                    # Play token
+                    if tok == '|':
+                        # Rest notation / bar line (pedal damping if sustain enabled)
+                        if CFG.use_sustain and self._sustain_held:
+                            release(' ')
+                            self._sustain_held = False
+                            damp_time = min(sec, 0.080)
+                            time.sleep(damp_time)
+                            press(' ')
+                            self._sustain_held = True
+                            time.sleep(max(0.0, sec - damp_time))
+                        else:
+                            time.sleep(sec)
+                    elif isinstance(tok, list):
+                        # Sort notes in chord by physical keyboard columns (left to right)
+                        sorted_tok = sorted(tok, key=lambda ch: KEYBOARD_COLUMNS.get(ch, 99.0))
+
+                        if robot:
+                            for n in sorted_tok:
+                                press(n)
+                            hold_len = max(0.06, CFG.hold * sec)
+                            time.sleep(hold_len)
+                            for n in reversed(sorted_tok):
+                                release(n)
+                            time.sleep(max(0.0, sec - hold_len))
+                        else:
+                            base = time.perf_counter()
+                            # Humanized sequential micro-delays (10–30ms strumming / arpeggiation)
+                            for i, n in enumerate(sorted_tok):
+                                press(n)
+                                if i < len(sorted_tok) - 1:
+                                    time.sleep(random.uniform(0.010, 0.030))
+
+                            hold_var = 1 + random.uniform(-h_jit, h_jit)
+                            main_hold = max(0.06, sec * CFG.hold * hold_var)
+                            elapsed = time.perf_counter() - base
+                            time.sleep(max(0.0, main_hold - elapsed))
+
+                            # Release notes
+                            for n in reversed(sorted_tok):
+                                release(n)
+                            time.sleep(max(0.0, sec - (time.perf_counter() - base)))
+                    else:
+                        press(tok)
+                        hold_var = (1 + random.uniform(-h_jit, h_jit)) if not robot else 1.0
+                        hold_len = max(0.06, CFG.hold * sec * hold_var)
+                        time.sleep(hold_len + max(0.0, onset_off))
+                        release(tok)
+                        time.sleep(max(0.0, sec - hold_len - max(0.0, onset_off)))
+
+                    if onset_off < 0:
+                        time.sleep(-onset_off)
+
+                    # Emit progress with current token for real-time visualizer
+                    self.q.put(('progress', (idx, tok)))
+                    self._last_shift_needed = self._needs_shift(tok)
+
+                    if slipped and random.random() < 0.2:
+                        time.sleep(random.uniform(0.3, 0.6))
 
                 if self.stop_evt.is_set():
                     break
 
-                if onset_off > 0:
-                    time.sleep(onset_off)
+                logger.info("Track '%s' completed.", self.sheet.name)
 
-                # Play token
-                if tok == '|':
-                    # Rest notation
-                    time.sleep(sec)
-                elif isinstance(tok, list):
-                    # Sort notes in chord by physical keyboard columns (left to right)
-                    sorted_tok = sorted(tok, key=lambda ch: KEYBOARD_COLUMNS.get(ch, 99.0))
-
-                    if robot:
-                        for n in sorted_tok:
-                            press(n)
-                        hold_len = max(0.06, CFG.hold * sec)
-                        time.sleep(hold_len)
-                        for n in reversed(sorted_tok):
-                            release(n)
-                        time.sleep(max(0.0, sec - hold_len))
-                    else:
-                        base = time.perf_counter()
-                        # Humanized sequential micro-delays (10–30ms strumming / arpeggiation)
-                        for i, n in enumerate(sorted_tok):
-                            press(n)
-                            if i < len(sorted_tok) - 1:
-                                time.sleep(random.uniform(0.010, 0.030))
-
-                        hold_var = 1 + random.uniform(-h_jit, h_jit)
-                        main_hold = max(0.06, sec * CFG.hold * hold_var)
-                        elapsed = time.perf_counter() - base
-                        time.sleep(max(0.0, main_hold - elapsed))
-
-                        # Release notes
-                        for n in reversed(sorted_tok):
-                            release(n)
-                        time.sleep(max(0.0, sec - (time.perf_counter() - base)))
+                # Playlist progression logic
+                if self.current_playlist_index < len(self.playlist) - 1:
+                    self.current_playlist_index += 1
+                    next_sheet = self.playlist[self.current_playlist_index]
+                    self.sheet = next_sheet
+                    logger.info("Advancing to next playlist song: %s", next_sheet.name)
+                    self.q.put(('playlist_next', next_sheet.name))
+                    if CFG.use_sustain and self._sustain_held:
+                        release(' ')
+                        time.sleep(0.080)
+                        press(' ')
+                    time.sleep(1.0)
                 else:
-                    press(tok)
-                    hold_var = (1 + random.uniform(-h_jit, h_jit)) if not robot else 1.0
-                    hold_len = max(0.06, CFG.hold * sec * hold_var)
-                    time.sleep(hold_len + max(0.0, onset_off))
-                    release(tok)
-                    time.sleep(max(0.0, sec - hold_len - max(0.0, onset_off)))
-
-                if onset_off < 0:
-                    time.sleep(-onset_off)
-
-                # Emit progress with current token for real-time visualizer
-                self.q.put(('progress', (idx, tok)))
-                self._last_shift_needed = self._needs_shift(tok)
-
-                if slipped and random.random() < 0.2:
-                    time.sleep(random.uniform(0.3, 0.6))
-
-            self.q.put(('done', 1))
-            logger.info("Playback of '%s' completed successfully.", self.sheet.name)
+                    self.q.put(('done', 1))
+                    logger.info("All tracks in playlist completed successfully.")
+                    break
         except Exception as exc:
             logger.exception("Playback exception encountered: %s", exc)
             self.q.put(('error', str(exc)))
+        finally:
+            if self._sustain_held:
+                try:
+                    release(' ')
+                    self._sustain_held = False
+                    logger.info("Sustain pedal released on finish/stop.")
+                except Exception as exc:
+                    logger.debug("Error releasing sustain pedal in finally: %s", exc)
