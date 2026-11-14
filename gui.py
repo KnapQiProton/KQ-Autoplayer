@@ -15,6 +15,7 @@ Refactored with CustomTkinter and strict tech-minimalist specifications:
 """
 from __future__ import annotations
 
+import logging
 import sys
 import time
 from pathlib import Path
@@ -27,6 +28,16 @@ from pynput.keyboard import Key, KeyCode, Listener
 
 import autoplayer_core as core
 from playpianosheets_source import OnlineSheetsDialog, check_internet, SmoothScrollableFrame
+
+# --- Logger Initialization ---
+logger = logging.getLogger('KQAutoplayer.GUI')
+if not logger.handlers:
+    _handler = logging.StreamHandler(sys.stdout)
+    _handler.setFormatter(
+        logging.Formatter('[%(asctime)s] [%(levelname)s] [%(name)s]: %(message)s', datefmt='%H:%M:%S')
+    )
+    logger.addHandler(_handler)
+    logger.setLevel(logging.INFO)
 
 # Color Palette Specification
 COLOR_BG = '#343A40'            # Charcoal Gray (Main App Window Background)
@@ -204,6 +215,8 @@ class App(ctk.CTk):
         self._tok_done = 0
         self.total_tokens = 0
         self._suspend_trace = False
+        self._last_valid_bpm = getattr(CFG, 'bpm', 120)
+        self._last_valid_sub = getattr(CFG, 'subdiv', 4.0)
 
         # Debounced Edge-Triggered Hotkey Engine
         self._pressed: set[str] = set()
@@ -267,13 +280,29 @@ class App(ctk.CTk):
         timer_col = ctk.CTkFrame(btm_bar, fg_color='transparent')
         timer_col.pack(side='left', fill='y')
 
+        timer_row = ctk.CTkFrame(timer_col, fg_color='transparent')
+        timer_row.pack(anchor='w', fill='x')
+
         self.lbl_time = ctk.CTkLabel(
-            timer_col,
+            timer_row,
             text='00:00 / 00:00',
             font=FONT_TIMER,
             text_color=COLOR_TEXT,
         )
-        self.lbl_time.pack(anchor='w')
+        self.lbl_time.pack(side='left')
+
+        # Real-time Visualizer Badge (displays current note/chord from progress queue)
+        self.lbl_visualizer = ctk.CTkLabel(
+            timer_row,
+            text='NOTE: --',
+            font=FONT_NUMERIC_BOLD,
+            text_color=COLOR_TEXT_MUTED,
+            fg_color=COLOR_SURFACE_DARK,
+            corner_radius=5,
+            padx=8,
+            pady=1,
+        )
+        self.lbl_visualizer.pack(side='left', padx=(10, 0))
 
         self.lbl_subtext = ctk.CTkLabel(
             timer_col,
@@ -281,7 +310,7 @@ class App(ctk.CTk):
             font=FONT_SUBTLE,
             text_color=COLOR_TEXT_MUTED,
         )
-        self.lbl_subtext.pack(anchor='w')
+        self.lbl_subtext.pack(anchor='w', pady=(2, 0))
 
         self.btn_play = ctk.CTkButton(
             btm_bar,
@@ -437,6 +466,8 @@ class App(ctk.CTk):
             height=30,
         )
         self.entry_bpm.pack(fill='x', pady=(1, 0))
+        self.entry_bpm.bind('<FocusOut>', lambda _e: self._on_bpm_commit())
+        self.entry_bpm.bind('<Return>', lambda _e: self._on_bpm_commit())
         add_focus_ring(self.entry_bpm)
 
         # Subdivision Column
@@ -461,6 +492,8 @@ class App(ctk.CTk):
             height=30,
         )
         self.entry_sub.pack(fill='x', pady=(1, 0))
+        self.entry_sub.bind('<FocusOut>', lambda _e: self._on_sub_commit())
+        self.entry_sub.bind('<Return>', lambda _e: self._on_sub_commit())
         add_focus_ring(self.entry_sub)
 
         # 4. Humanise Slider
@@ -728,14 +761,20 @@ class App(ctk.CTk):
         meta = core.read_sheet_meta(CFG.sheet)
 
         self._suspend_trace = True
-        self.var_bpm.set(str(meta.get('bpm', 120)))
-        self.var_sub.set(str(meta.get('subdiv', 4.0)))
+        bpm_val = meta.get('bpm', 120)
+        sub_val = meta.get('subdiv', 4.0)
+        self.var_bpm.set(str(bpm_val))
+        self.var_sub.set(str(sub_val))
+        self._last_valid_bpm = bpm_val
+        self._last_valid_sub = sub_val
+
         self.txt_note.delete('1.0', 'end')
         note = meta.get('note', '')
         if note:
             self.txt_note.insert('1.0', note)
         self._suspend_trace = False
 
+        logger.info("Sheet loaded: '%s' (BPM: %s, Subdiv: %s)", new_sheet, bpm_val, sub_val)
         self._timing_changed()
         if self.player:
             self._stop_player()
@@ -744,16 +783,75 @@ class App(ctk.CTk):
         else:
             self._update_time(self._tok_done)
 
+    def _flash_warning(self, widget):
+        """Subtle non-intrusive visual warning flash on invalid inputs."""
+        try:
+            widget.configure(border_color='#FA5252')
+            self.after(450, lambda: widget.configure(border_color=COLOR_BORDER))
+        except Exception:
+            pass
+
+    def _on_bpm_commit(self):
+        txt = self.var_bpm.get().strip()
+        try:
+            val = int(txt)
+            if val <= 0:
+                raise ValueError("BPM must be greater than 0")
+            if val > 1200:
+                raise ValueError("BPM exceeds maximum safe limit")
+            self._last_valid_bpm = val
+            CFG.bpm = val
+            self._store_current_meta()
+            self._update_time(self._tok_done)
+        except (ValueError, TypeError) as err:
+            logger.warning("Invalid BPM '%s'. Reverting to %s. (%s)", txt, self._last_valid_bpm, err)
+            self._flash_warning(self.entry_bpm)
+            self._suspend_trace = True
+            self.var_bpm.set(str(self._last_valid_bpm))
+            self._suspend_trace = False
+
+    def _on_sub_commit(self):
+        txt = self.var_sub.get().strip()
+        try:
+            val = float(txt)
+            if val <= 0:
+                raise ValueError("Subdivision must be greater than 0")
+            if val > 64:
+                raise ValueError("Subdivision exceeds maximum limit")
+            self._last_valid_sub = val
+            CFG.subdiv = val
+            self._store_current_meta()
+            self._update_time(self._tok_done)
+        except (ValueError, TypeError) as err:
+            logger.warning("Invalid Subdivision '%s'. Reverting to %s. (%s)", txt, self._last_valid_sub, err)
+            self._flash_warning(self.entry_sub)
+            self._suspend_trace = True
+            self.var_sub.set(str(self._last_valid_sub))
+            self._suspend_trace = False
+
     def _timing_changed(self):
         if self._suspend_trace:
             return
+        bpm_txt = self.var_bpm.get().strip()
+        sub_txt = self.var_sub.get().strip()
         try:
-            CFG.bpm = int(self.var_bpm.get())
-            CFG.subdiv = max(0.1, float(self.var_sub.get()))
-            self._store_current_meta()
-            self._update_time(self._tok_done)
+            b_val = int(bpm_txt)
+            if b_val > 0:
+                CFG.bpm = b_val
+                self._last_valid_bpm = b_val
         except ValueError:
             pass
+
+        try:
+            s_val = float(sub_txt)
+            if s_val > 0:
+                CFG.subdiv = s_val
+                self._last_valid_sub = s_val
+        except ValueError:
+            pass
+
+        self._store_current_meta()
+        self._update_time(self._tok_done)
 
     def _expressiveness_changed(self):
         try:
@@ -810,15 +908,18 @@ class App(ctk.CTk):
         if not CFG.sheet or not CFG.sheet.exists():
             messagebox.showwarning('Sheet required', 'Please select a valid sheet file.')
             return
+        logger.info("Starting player for '%s' (BPM: %s, Subdiv: %s)...", CFG.sheet.name, CFG.bpm, CFG.subdiv)
         self.player = core.Player(CFG.sheet, self.queue)
         self.player.start()
         self._update_fab_icon()
 
     def _stop_player(self):
         if self.player:
+            logger.info("Stopping player thread.")
             self.player.stop()
             self.player = None
             self._update_fab_icon()
+            self.lbl_visualizer.configure(text='NOTE: --', text_color=COLOR_TEXT_MUTED)
 
     def _fab_pressed(self):
         if self.player and not self.player.is_alive():
@@ -842,9 +943,11 @@ class App(ctk.CTk):
             else:
                 self.status_pill.configure(text='PAUSED', text_color='#FF922B')
                 self.lbl_subtext.configure(text='Paused (press hotkey to resume)')
+                self.lbl_visualizer.configure(text='NOTE: (PAUSED)', text_color='#FF922B')
         else:
             self.status_pill.configure(text='IDLE', text_color=COLOR_TEXT_MUTED)
             self.lbl_subtext.configure(text='Ready to play')
+            self.lbl_visualizer.configure(text='NOTE: --', text_color=COLOR_TEXT_MUTED)
 
     def _hk_press(self, k):
         norm_k = normalize_key(k)
@@ -859,6 +962,7 @@ class App(ctk.CTk):
                 if now - self._last_hotkey_time >= 0.25:
                     self._hotkey_active = True
                     self._last_hotkey_time = now
+                    logger.info("Hotkey combination triggered (%s).", CFG.toggle)
                     self.after(0, self._fab_pressed)
 
     def _hk_release(self, k):
@@ -877,16 +981,35 @@ class App(ctk.CTk):
                     self.total_tokens = d[0] if isinstance(d, tuple) else d
                     self.prog.set(0.0)
                 elif tag == 'progress':
-                    self._tok_done = d[0] if isinstance(d, tuple) else d
+                    if isinstance(d, (tuple, list)):
+                        self._tok_done = d[0]
+                        tok = d[1] if len(d) > 1 else None
+                    else:
+                        self._tok_done = d
+                        tok = None
+
                     frac = (self._tok_done / self.total_tokens) if self.total_tokens else 0.0
                     self.prog.set(max(0.0, min(1.0, frac)))
                     self._update_time(self._tok_done)
+
+                    if tok is not None:
+                        if isinstance(tok, list):
+                            chord_str = ''.join(tok)
+                            self.lbl_visualizer.configure(text=f"NOTE: [{chord_str}]", text_color='#51CF66')
+                        elif tok == '|':
+                            self.lbl_visualizer.configure(text="NOTE: | (rest)", text_color='#FF922B')
+                        else:
+                            self.lbl_visualizer.configure(text=f"NOTE: '{tok}'", text_color='#74C0FC')
                 elif tag == 'done':
+                    logger.info("Song playback finished.")
                     self._stop_player()
                     self.prog.set(1.0)
                     self._update_time(self.total_tokens)
+                    self.lbl_visualizer.configure(text='NOTE: --', text_color=COLOR_TEXT_MUTED)
                 elif tag == 'error':
+                    logger.error("Playback error: %s", d)
                     self._stop_player()
+                    self.lbl_visualizer.configure(text='NOTE: --', text_color=COLOR_TEXT_MUTED)
                     messagebox.showerror('Playback error', str(d))
         except Empty:
             pass

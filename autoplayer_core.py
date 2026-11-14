@@ -1,8 +1,13 @@
 """
-Virtual-/Roblox-Piano Autoplayer – density- & Shift-aware humaniser (July 2025)
+Virtual-/Roblox-Piano Autoplayer – density- & Shift-aware humaniser
+KQ Autoplayer Core Engine with Hardware-Level Win32 SendInput & Advanced Humanisation.
 
-• 0 % = exact robot playback  
-• 1–50 % ultra-tight • 50–75 % balanced realism • 75–100 % sloppy / intermediate  
+Features:
+• STEALTH_MODE: Low-level Win32 SendInput using hardware scancodes to avoid Roblox (Byfron/Hyperion) macro detection.
+• Left-to-right keyboard physical column sorting for natural piano chord strumming.
+• Micro-delay arpeggiation (10–30ms) for realistic multi-finger note strikes.
+• Density-adaptive timing, human drift, and accidental miss/slip simulation.
+• Logging integration across all core player events.
 """
 from __future__ import annotations
 
@@ -10,29 +15,107 @@ from dataclasses import dataclass, asdict, field
 from pathlib import Path
 from queue import Queue
 from typing import Dict, List, Optional, Tuple
+import ctypes
+from ctypes import wintypes
 import json
-import threading
-import time
-import sys
+import logging
 import math
 import random
+import sys
+import threading
+import time
 import win32gui
 from pynput.keyboard import Controller, Key
 
 __all__ = [
     'CFG',
+    'Config',
     'save_cfg',
     'windows',
     'Player',
     'press',
     'release',
+    'win32_press',
+    'win32_release',
+    'char_to_vk_info',
     'SHIFT_MAP',
+    'KEYBOARD_COLUMNS',
     'read_sheet_meta',
     'write_sheet_meta',
+    'logger',
 ]
+
+# --- Logging Initialization ---
+logger = logging.getLogger('KQAutoplayer.Core')
+if not logger.handlers:
+    _handler = logging.StreamHandler(sys.stdout)
+    _handler.setFormatter(
+        logging.Formatter('[%(asctime)s] [%(levelname)s] [%(name)s]: %(message)s', datefmt='%H:%M:%S')
+    )
+    logger.addHandler(_handler)
+    logger.setLevel(logging.INFO)
 
 DATA_FILE = Path(__file__).with_name('vp_autoplayer.json')
 
+# --- Win32 Hardware-Level SendInput Definitions ---
+user32 = ctypes.WinDLL('user32', use_last_error=True)
+
+INPUT_KEYBOARD = 1
+KEYEVENTF_KEYUP = 0x0002
+KEYEVENTF_SCANCODE = 0x0008
+MAPVK_VK_TO_VSC = 0
+VK_SHIFT = 0x10
+
+
+class KEYBDINPUT(ctypes.Structure):
+    _fields_ = [
+        ("wVk", wintypes.WORD),
+        ("wScan", wintypes.WORD),
+        ("dwFlags", wintypes.DWORD),
+        ("time", wintypes.DWORD),
+        ("dwExtraInfo", ctypes.c_ulonglong)
+    ]
+
+
+class MOUSEINPUT(ctypes.Structure):
+    _fields_ = [
+        ("dx", wintypes.LONG),
+        ("dy", wintypes.LONG),
+        ("mouseData", wintypes.DWORD),
+        ("dwFlags", wintypes.DWORD),
+        ("time", wintypes.DWORD),
+        ("dwExtraInfo", ctypes.c_ulonglong)
+    ]
+
+
+class HARDWAREINPUT(ctypes.Structure):
+    _fields_ = [
+        ("uMsg", wintypes.DWORD),
+        ("wParamL", wintypes.WORD),
+        ("wParamH", wintypes.WORD)
+    ]
+
+
+class _INPUT_UNION(ctypes.Union):
+    _fields_ = [
+        ("ki", KEYBDINPUT),
+        ("mi", MOUSEINPUT),
+        ("hi", HARDWAREINPUT)
+    ]
+
+
+class INPUT(ctypes.Structure):
+    _fields_ = [
+        ("type", wintypes.DWORD),
+        ("union", _INPUT_UNION)
+    ]
+
+
+user32.SendInput.argtypes = [wintypes.UINT, ctypes.POINTER(INPUT), ctypes.c_int]
+user32.SendInput.restype = wintypes.UINT
+
+
+# --- Sheet Notation Shift & OEM Mappings ---
 SHIFT_MAP: Dict[str, str] = {
     '!': '1',
     '@': '2',
@@ -53,9 +136,23 @@ SHIFT_MAP: Dict[str, str] = {
     '<': ',',
     '>': '.',
     '?': '/',
+    '~': '`',
 }
 
 SHIFT_REV: Dict[str, str] = {v: k for k, v in SHIFT_MAP.items()}
+
+OEM_MAP: Dict[str, int] = {
+    '-': 0xBD,
+    '=': 0xBB,
+    '[': 0xDB,
+    ']': 0xDD,
+    ';': 0xBA,
+    "'": 0xDE,
+    ',': 0xBC,
+    '.': 0xBE,
+    '/': 0xBF,
+    '`': 0xC0,
+}
 
 NEIGHBOURS: Dict[str, List[str]] = {
     'a': ['s', 'q', 'w', 'z'],
@@ -79,13 +176,135 @@ NEIGHBOURS: Dict[str, List[str]] = {
     'p': ['o', 'l'],
 }
 
+# Approximate physical column X-position on standard ANSI QWERTY (left to right)
+KEYBOARD_COLUMNS: Dict[str, float] = {
+    # Row 1 (Number row)
+    '`': 0.0, '~': 0.0,
+    '1': 1.0, '!': 1.0,
+    '2': 2.0, '@': 2.0,
+    '3': 3.0, '#': 3.0,
+    '4': 4.0, '$': 4.0,
+    '5': 5.0, '%': 5.0,
+    '6': 6.0, '^': 6.0,
+    '7': 7.0, '&': 7.0,
+    '8': 8.0, '*': 8.0,
+    '9': 9.0, '(': 9.0,
+    '0': 10.0, ')': 10.0,
+    '-': 11.0, '_': 11.0,
+    '=': 12.0, '+': 12.0,
+
+    # Row 2 (Tab row)
+    'q': 1.5, 'Q': 1.5,
+    'w': 2.5, 'W': 2.5,
+    'e': 3.5, 'E': 3.5,
+    'r': 4.5, 'R': 4.5,
+    't': 5.5, 'T': 5.5,
+    'y': 6.5, 'Y': 6.5,
+    'u': 7.5, 'U': 7.5,
+    'i': 8.5, 'I': 8.5,
+    'o': 9.5, 'O': 9.5,
+    'p': 10.5, 'P': 10.5,
+    '[': 11.5, '{': 11.5,
+    ']': 12.5, '}': 12.5,
+
+    # Row 3 (Home row)
+    'a': 1.75, 'A': 1.75,
+    's': 2.75, 'S': 2.75,
+    'd': 3.75, 'D': 3.75,
+    'f': 4.75, 'F': 4.75,
+    'g': 5.75, 'G': 5.75,
+    'h': 6.75, 'H': 6.75,
+    'j': 7.75, 'J': 7.75,
+    'k': 8.75, 'K': 8.75,
+    'l': 9.75, 'L': 9.75,
+    ';': 10.75, ':': 10.75,
+    "'": 11.75, '"': 11.75,
+
+    # Row 4 (Bottom row)
+    'z': 2.25, 'Z': 2.25,
+    'x': 3.25, 'X': 3.25,
+    'c': 4.25, 'C': 4.25,
+    'v': 5.25, 'V': 5.25,
+    'b': 6.25, 'B': 6.25,
+    'n': 7.25, 'N': 7.25,
+    'm': 8.25, 'M': 8.25,
+    ',': 9.25, '<': 9.25,
+    '.': 10.25, '>': 10.25,
+    '/': 11.25, '?': 11.25,
+}
+
 KB = Controller()
+
+
+def char_to_vk_info(ch: str) -> tuple[int | None, bool]:
+    """Map piano notation character to Windows Virtual Key code and Shift state."""
+    if not ch:
+        return (None, False)
+
+    if ch.isdigit():
+        return (0x30 + int(ch), False)
+    if ch.isalpha():
+        return (0x41 + (ord(ch.upper()) - ord('A')), ch.isupper())
+    if ch in SHIFT_MAP:
+        base = SHIFT_MAP[ch]
+        if base.isdigit():
+            return (0x30 + int(base), True)
+        if base in OEM_MAP:
+            return (OEM_MAP[base], True)
+    if ch in OEM_MAP:
+        return (OEM_MAP[ch], False)
+    return (None, False)
+
+
+def send_win32_key(vk: int, is_up: bool) -> bool:
+    """Send low-level hardware scan code key event using Windows user32.SendInput."""
+    try:
+        scan = user32.MapVirtualKeyW(vk, MAPVK_VK_TO_VSC)
+        flags = KEYEVENTF_SCANCODE
+        if is_up:
+            flags |= KEYEVENTF_KEYUP
+
+        inp = INPUT()
+        inp.type = INPUT_KEYBOARD
+        inp.union.ki.wVk = vk
+        inp.union.ki.wScan = scan
+        inp.union.ki.dwFlags = flags
+        inp.union.ki.time = 0
+        inp.union.ki.dwExtraInfo = 0
+
+        res = user32.SendInput(1, ctypes.byref(inp), ctypes.sizeof(INPUT))
+        return res == 1
+    except Exception as exc:
+        logger.debug("SendInput exception for VK 0x%02X: %s", vk, exc)
+        return False
+
+
+def win32_press(ch: str) -> bool:
+    """Press key using low-level Win32 hardware scancode (anti-cheat stealth mode)."""
+    vk, needs_shift = char_to_vk_info(ch)
+    if vk is None:
+        return False
+    if needs_shift:
+        send_win32_key(VK_SHIFT, False)
+    send_win32_key(vk, False)
+    return True
+
+
+def win32_release(ch: str) -> bool:
+    """Release key using low-level Win32 hardware scancode."""
+    vk, needs_shift = char_to_vk_info(ch)
+    if vk is None:
+        return False
+    send_win32_key(vk, True)
+    if needs_shift:
+        send_win32_key(VK_SHIFT, True)
+    return True
 
 
 def read_sheet_meta(path: Path) -> dict:
     """
     Return dict from first non-blank line that starts with “#META”.
-    May include 'bpm', 'subdiv', and now optional 'note'.
+    May include 'bpm', 'subdiv', and optional 'note'.
     """
     try:
         with path.open('r', encoding='utf-8') as f:
@@ -127,7 +346,7 @@ def write_sheet_meta(
             lines.insert(0, header)
         path.write_text('\n'.join(lines), 'utf-8')
     except Exception as exc:
-        print('Failed to write meta:', exc, file=sys.stderr)
+        logger.error("Failed to write sheet metadata: %s", exc)
 
 
 @dataclass
@@ -141,6 +360,7 @@ class Config:
     toggle: str = 'f4'
     auto_pause: bool = True
     dark: bool = False
+    stealth_mode: bool = True  # STEALTH_MODE (Low-level Win32 hardware SendInput)
     target_title: Optional[str] = field(default=None, repr=False)
     geometry: str | None = None
 
@@ -156,7 +376,7 @@ if DATA_FILE.exists():
         for k, v in raw.items():
             setattr(CFG, k, Path(v) if k in ('folder', 'sheet') and v is not None else v)
     except Exception as exc:
-        print('⚠ settings load:', exc, file=sys.stderr)
+        logger.warning("Failed to load settings file: %s", exc)
 
 
 def save_cfg() -> None:
@@ -167,10 +387,20 @@ def save_cfg() -> None:
                 data[k] = str(v)
         DATA_FILE.write_text(json.dumps(data, indent=2), 'utf-8')
     except Exception as exc:
-        print('⚠ settings save:', exc, file=sys.stderr)
+        logger.warning("Failed to save settings file: %s", exc)
 
 
 def press(ch: str) -> None:
+    """
+    Press a character key.
+    Uses Win32 SendInput (stealth hardware scancode) when CFG.stealth_mode is True,
+    falling back seamlessly to pynput if needed.
+    """
+    if CFG.stealth_mode:
+        if win32_press(ch):
+            return
+
+    # Fallback / Non-stealth Controller
     if ch in SHIFT_MAP:
         KB.press(Key.shift)
         KB.press(SHIFT_MAP[ch])
@@ -183,6 +413,12 @@ def press(ch: str) -> None:
 
 
 def release(ch: str) -> None:
+    """Release a character key."""
+    if CFG.stealth_mode:
+        if win32_release(ch):
+            return
+
+    # Fallback / Non-stealth Controller
     if ch in SHIFT_MAP:
         KB.release(SHIFT_MAP[ch])
         KB.release(Key.shift)
@@ -196,9 +432,11 @@ def release(ch: str) -> None:
 
 def windows() -> list[Tuple[int, str]]:
     out = []
+
     def _enum(h, _):
         if win32gui.IsWindowVisible(h) and win32gui.GetWindowText(h):
             out.append((h, win32gui.GetWindowText(h)))
+
     win32gui.EnumWindows(_enum, None)
     return sorted(out, key=lambda t: t[1].lower())
 
@@ -217,11 +455,14 @@ class Player(threading.Thread):
     def toggle(self) -> None:
         if self.resume_evt.is_set():
             self.resume_evt.clear()
+            logger.info("Playback paused by user.")
         else:
             self.resume_evt.set()
+            logger.info("Playback resumed by user.")
 
     def stop(self) -> None:
         self.stop_evt.set()
+        logger.info("Playback stopped.")
 
     def _human_strength(self) -> float:
         h = CFG.human * 100
@@ -287,6 +528,7 @@ class Player(threading.Thread):
 
     def run(self) -> None:
         try:
+            logger.info("Starting playback of '%s' (Stealth Mode: %s)...", self.sheet.name, CFG.stealth_mode)
             raw = self.sheet.read_text('utf-8')
             toks = list(self._tokenise(raw))
             total = len(toks)
@@ -310,7 +552,7 @@ class Player(threading.Thread):
 
                 slipped = False
                 if p_drop and random.random() < p_drop:
-                    self.q.put(('progress', idx))
+                    self.q.put(('progress', (idx, tok)))
                     self._last_shift_needed = False
                     continue
 
@@ -321,6 +563,7 @@ class Player(threading.Thread):
                 sec = CFG.sec_per_tok() * (1 + drift * math.sin(2 * math.pi * 0.25 * (time.time() - t0)))
                 onset_off = random.gauss(0, σ) if σ > 0 else 0.0
 
+                # Window focus check & pause loop
                 while (not self.resume_evt.is_set()) or (
                     CFG.auto_pause
                     and CFG.target_title
@@ -336,27 +579,37 @@ class Player(threading.Thread):
                 if onset_off > 0:
                     time.sleep(onset_off)
 
+                # Play token
                 if tok == '|':
+                    # Rest notation
                     time.sleep(sec)
                 elif isinstance(tok, list):
+                    # Sort notes in chord by physical keyboard columns (left to right)
+                    sorted_tok = sorted(tok, key=lambda ch: KEYBOARD_COLUMNS.get(ch, 99.0))
+
                     if robot:
-                        for n in tok:
+                        for n in sorted_tok:
                             press(n)
                         hold_len = max(0.06, CFG.hold * sec)
                         time.sleep(hold_len)
-                        for n in reversed(tok):
+                        for n in reversed(sorted_tok):
                             release(n)
                         time.sleep(max(0.0, sec - hold_len))
                     else:
                         base = time.perf_counter()
-                        for i, n in enumerate(tok):
+                        # Humanized sequential micro-delays (10–30ms strumming / arpeggiation)
+                        for i, n in enumerate(sorted_tok):
                             press(n)
-                            if i < len(tok) - 1:
-                                time.sleep(span * random.random())
+                            if i < len(sorted_tok) - 1:
+                                time.sleep(random.uniform(0.010, 0.030))
+
                         hold_var = 1 + random.uniform(-h_jit, h_jit)
                         main_hold = max(0.06, sec * CFG.hold * hold_var)
-                        time.sleep(max(0.0, main_hold - (time.perf_counter() - base)))
-                        for n in reversed(tok):
+                        elapsed = time.perf_counter() - base
+                        time.sleep(max(0.0, main_hold - elapsed))
+
+                        # Release notes
+                        for n in reversed(sorted_tok):
                             release(n)
                         time.sleep(max(0.0, sec - (time.perf_counter() - base)))
                 else:
@@ -370,12 +623,15 @@ class Player(threading.Thread):
                 if onset_off < 0:
                     time.sleep(-onset_off)
 
-                self.q.put(('progress', idx))
+                # Emit progress with current token for real-time visualizer
+                self.q.put(('progress', (idx, tok)))
                 self._last_shift_needed = self._needs_shift(tok)
 
                 if slipped and random.random() < 0.2:
                     time.sleep(random.uniform(0.3, 0.6))
 
             self.q.put(('done', 1))
+            logger.info("Playback of '%s' completed successfully.", self.sheet.name)
         except Exception as exc:
+            logger.exception("Playback exception encountered: %s", exc)
             self.q.put(('error', str(exc)))

@@ -3,19 +3,32 @@ PlayPianoSheets.com Online Sheet Integration for KQ Autoplayer.
 
 Allows searching, browsing, and 1-click downloading of 1,800+ sheets
 from https://playpianosheets.com/ into the local sheets library,
-with rich genre/category filtering (Classical, Anime, Gaming, Pop, etc.).
+with rich genre/category filtering (Classical, Anime, Gaming, Pop, etc.),
+BeautifulSoup fallback parsing, and robust error handling.
 """
 from __future__ import annotations
 
 import json
+import logging
 import re
 import socket
+import sys
 import threading
 import urllib.request
 from pathlib import Path
 import tkinter as tk
 from tkinter import messagebox
 import customtkinter as ctk
+
+# --- Logger Initialization ---
+logger = logging.getLogger('KQAutoplayer.SheetsSource')
+if not logger.handlers:
+    _handler = logging.StreamHandler(sys.stdout)
+    _handler.setFormatter(
+        logging.Formatter('[%(asctime)s] [%(levelname)s] [%(name)s]: %(message)s', datefmt='%H:%M:%S')
+    )
+    logger.addHandler(_handler)
+    logger.setLevel(logging.INFO)
 
 # Color Palette matching KQ Autoplayer tech-minimalist dark theme
 COLOR_BG = '#343A40'
@@ -62,45 +75,86 @@ def fetch_playpianosheets_catalog() -> list[dict]:
     """
     Fetch complete catalog of songs from playpianosheets.com including
     title, artist, genres/tags, and slug.
+    Primary: Next.js RSC push regex.
+    Fallback 1: BeautifulSoup HTML parser.
+    Fallback 2: sitemap.xml.
     """
-    # 1. Fetch full catalog from category/all with rich metadata (1,800+ songs)
     url = 'https://playpianosheets.com/category/all'
     req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'})
+    html = None
     try:
         with urllib.request.urlopen(req, timeout=12) as resp:
             html = resp.read().decode('utf-8', errors='ignore')
+    except Exception as exc:
+        logger.warning("Failed to fetch %s: %s", url, exc)
 
-        cleaned = html.replace('\\"', '"').replace('\\\\', '\\')
-        pattern = re.compile(
-            r'\{"id":"([^"]+)","title":"([^"]+)","artist":"([^"]*)","image":"[^"]*","tags":(\[[^\]]*\]),"slug":"([^"]+)"'
-        )
-        items = []
-        for m in pattern.finditer(cleaned):
-            sheet_id, title, artist, tags_raw, slug = m.groups()
-            try:
-                tags = json.loads(tags_raw)
-            except Exception:
-                tags = []
-            items.append({
-                'id': sheet_id,
-                'title': title.strip(),
-                'artist': artist.strip(),
-                'tags': [t.strip().lower() for t in tags],
-                'slug': slug.strip(),
-            })
+    if html:
+        # 1. Primary: Next.js RSC extraction
+        try:
+            cleaned = html.replace('\\"', '"').replace('\\\\', '\\')
+            pattern = re.compile(
+                r'\{"id":"([^"]+)","title":"([^"]+)","artist":"([^"]*)","image":"[^"]*","tags":(\[[^\]]*\]),"slug":"([^"]+)"'
+            )
+            items = []
+            for m in pattern.finditer(cleaned):
+                sheet_id, title, artist, tags_raw, slug = m.groups()
+                try:
+                    tags = json.loads(tags_raw)
+                except Exception:
+                    tags = []
+                items.append({
+                    'id': sheet_id,
+                    'title': title.strip(),
+                    'artist': artist.strip(),
+                    'tags': [t.strip().lower() for t in tags],
+                    'slug': slug.strip(),
+                })
+            if items:
+                logger.info("Successfully loaded %d songs via RSC stream.", len(items))
+                return items
+        except Exception as exc:
+            logger.warning("RSC parsing failed: %s. Trying BeautifulSoup fallback...", exc)
 
-        if items:
-            return items
-    except Exception:
-        pass
+        # 2. Fallback 1: BeautifulSoup HTML parser
+        try:
+            from bs4 import BeautifulSoup
+            soup = BeautifulSoup(html, 'html.parser')
+            bs_items = []
+            seen_slugs = set()
+            for a in soup.find_all('a', href=True):
+                href = a['href']
+                if '/sheets/' in href:
+                    slug = href.split('/sheets/')[-1].split('?')[0].strip('/')
+                    if slug and slug not in seen_slugs:
+                        seen_slugs.add(slug)
+                        # Extract title text or fallback to slug
+                        text = a.get_text(strip=True) or slug_to_title(slug)
+                        # Clean up difficulty badges if attached to link text
+                        clean_title = re.sub(r'(Easy|Normal|Hard|Expert)+$', '', text).strip() or slug_to_title(slug)
+                        bs_items.append({
+                            'id': slug,
+                            'title': clean_title,
+                            'artist': '',
+                            'tags': [],
+                            'slug': slug,
+                        })
+            if bs_items:
+                logger.info("Retrieved %d items via BeautifulSoup fallback.", len(bs_items))
+                return bs_items
+        except Exception as bs_exc:
+            logger.warning("BeautifulSoup fallback failed: %s", bs_exc)
 
-    # 2. Fallback to sitemap.xml if category/all is unavailable
-    url = 'https://playpianosheets.com/sitemap.xml'
-    req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'})
+    # 3. Fallback 2: sitemap.xml
     try:
-        with urllib.request.urlopen(req, timeout=8) as resp:
+        url_sitemap = 'https://playpianosheets.com/sitemap.xml'
+        req_sm = urllib.request.Request(url_sitemap, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'})
+        with urllib.request.urlopen(req_sm, timeout=8) as resp:
             data = resp.read().decode('utf-8', errors='ignore')
         slugs = re.findall(r'<loc>https://playpianosheets\.com/sheets/([^<]+)</loc>', data)
+        if not slugs:
+            from bs4 import BeautifulSoup
+            soup = BeautifulSoup(data, 'xml')
+            slugs = [loc.text.split('/sheets/')[-1].strip() for loc in soup.find_all('loc') if '/sheets/' in loc.text]
         return [
             {
                 'id': s,
@@ -111,7 +165,8 @@ def fetch_playpianosheets_catalog() -> list[dict]:
             }
             for s in slugs
         ]
-    except Exception:
+    except Exception as exc:
+        logger.error("All catalog fetching methods failed: %s", exc)
         return []
 
 
@@ -119,6 +174,7 @@ def download_playpianosheet(slug_or_url: str, output_dir: Path) -> tuple[Path, s
     """
     Download sheet notation from playpianosheets.com, format it with metadata,
     and save it as a ready-to-play .txt sheet in output_dir.
+    Comprehensive try-except and BeautifulSoup fallback.
     """
     slug = slug_or_url.strip().lower()
     if 'playpianosheets.com/sheets/' in slug:
@@ -127,56 +183,86 @@ def download_playpianosheet(slug_or_url: str, output_dir: Path) -> tuple[Path, s
         slug = slug.rstrip('/').split('/')[-1]
 
     url = f'https://playpianosheets.com/sheets/{slug}'
-    req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'})
-    with urllib.request.urlopen(req, timeout=12) as resp:
-        html = resp.read().decode('utf-8', errors='ignore')
+    try:
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'})
+        with urllib.request.urlopen(req, timeout=12) as resp:
+            html = resp.read().decode('utf-8', errors='ignore')
+    except Exception as exc:
+        logger.error("Network error fetching sheet '%s': %s", slug, exc)
+        raise RuntimeError(
+            "Gagal mengambil data dari PlayPianoSheets.com. Situs mungkin sedang diperbarui atau koneksi internet terputus. "
+            "Silakan coba lagi nanti atau gunakan sheet lokal."
+        ) from exc
 
-    # Song title
-    h1 = re.search(r'<h1[^>]*>(.*?)</h1>', html, re.DOTALL)
-    title = re.sub(r'<[^>]+>', '', h1.group(1)).strip() if h1 else slug_to_title(slug)
-
-    # Full title & artist details
-    title_tag = re.search(r'<title>(.*?) Roblox Piano Sheet</title>', html)
-    header_info = title_tag.group(1) if title_tag else title
-
-    # React Server Component stream extraction
-    pushes = re.findall(r'self\.__next_f\.push\(\[1,\s*\"(.*?)\"\]\)', html, re.DOTALL)
-    full_text = ''
-    for p in pushes:
-        decoded = p.encode('utf-8').decode('unicode_escape', errors='ignore')
-        full_text += decoded
-
+    title = slug_to_title(slug)
+    header_info = title
     sheet_music = None
-    matches = re.finditer(r'\d+:T([0-9a-fA-F]+),', full_text)
-    for m in matches:
-        hex_len = m.group(1)
-        length = int(hex_len, 16)
-        start = m.end()
-        text = full_text[start:start + length]
-        if any(f'[{c}' in text for c in 'abcdefghijklmnopqrstuvwxyz0123456789'):
-            sheet_music = text
-            break
 
-    # Fallback: extract from token spans
+    try:
+        # Title extraction
+        h1 = re.search(r'<h1[^>]*>(.*?)</h1>', html, re.DOTALL)
+        if h1:
+            title = re.sub(r'<[^>]+>', '', h1.group(1)).strip()
+        title_tag = re.search(r'<title>(.*?) Roblox Piano Sheet</title>', html)
+        if title_tag:
+            header_info = title_tag.group(1)
+
+        # 1. Primary: RSC stream extraction
+        pushes = re.findall(r'self\.__next_f\.push\(\[1,\s*\"(.*?)\"\]\)', html, re.DOTALL)
+        full_text = ''
+        for p in pushes:
+            decoded = p.encode('utf-8').decode('unicode_escape', errors='ignore')
+            full_text += decoded
+
+        matches = re.finditer(r'\d+:T([0-9a-fA-F]+),', full_text)
+        for m in matches:
+            hex_len = m.group(1)
+            length = int(hex_len, 16)
+            start = m.end()
+            text = full_text[start:start + length]
+            if any(f'[{c}' in text for c in 'abcdefghijklmnopqrstuvwxyz0123456789'):
+                sheet_music = text
+                break
+
+        # 2. Fallback 1: Token span regex
+        if not sheet_music:
+            tokens = re.findall(r'<span id="token-\d+"[^>]*>(.*?)</span>', html)
+            if tokens:
+                sheet_music = ' '.join(tokens)
+
+        # 3. Fallback 2: BeautifulSoup HTML parser
+        if not sheet_music:
+            from bs4 import BeautifulSoup
+            soup = BeautifulSoup(html, 'html.parser')
+            # Look for token spans with BeautifulSoup
+            spans = soup.find_all('span', id=lambda x: x and x.startswith('token-'))
+            if spans:
+                sheet_music = ' '.join(s.get_text() for s in spans)
+            else:
+                for candidate in soup.find_all(['pre', 'code', 'div']):
+                    c_text = candidate.get_text()
+                    if any(f'[{c}' in c_text for c in 'abcdefghijklmnopqrstuvwxyz0123456789'):
+                        sheet_music = c_text
+                        break
+    except Exception as parse_exc:
+        logger.warning("Error during sheet notation parsing: %s", parse_exc)
+
     if not sheet_music:
-        tokens = re.findall(r'<span id="token-\d+"[^>]*>(.*?)</span>', html)
-        if tokens:
-            sheet_music = ' '.join(tokens)
+        raise RuntimeError(
+            f"Gagal mengekstrak notasi piano untuk '{title}'. Format halaman mungkin berubah. "
+            "Silakan periksa koneksi atau gunakan file sheet lokal."
+        )
 
-    if not sheet_music:
-        raise ValueError(f"Could not extract sheet notes from {url}")
-
-    # Ensure output directory exists
-    output_dir.mkdir(parents=True, exist_ok=True)
-
-    # Sanitize Windows file name
-    safe_title = re.sub(r'[<>:"/\\|?*]', '', title).strip()
-    out_file = output_dir / f"{safe_title}.txt"
-
-    # Meta header compatible with VP/KQ Autoplayer
-    meta_line = f'#META {{"bpm": 120, "subdiv": 4.0, "note": "Source: playpianosheets.com/sheets/{slug} | {header_info}"}}\n'
-    out_file.write_text(meta_line + sheet_music.strip() + '\n', encoding='utf-8')
-    return out_file, title
+    try:
+        output_dir.mkdir(parents=True, exist_ok=True)
+        safe_title = re.sub(r'[<>:"/\\|?*]', '', title).strip()
+        out_file = output_dir / f"{safe_title}.txt"
+        meta_line = f'#META {{"bpm": 120, "subdiv": 4.0, "note": "Source: playpianosheets.com/sheets/{slug} | {header_info}"}}\n'
+        out_file.write_text(meta_line + sheet_music.strip() + '\n', encoding='utf-8')
+        return out_file, title
+    except Exception as file_exc:
+        logger.error("Failed to save downloaded sheet file: %s", file_exc)
+        raise RuntimeError(f"Gagal menyimpan file sheet lokal: {file_exc}") from file_exc
 
 
 def item_matches_genre(item: dict, genre: str) -> bool:
@@ -485,8 +571,8 @@ class OnlineSheetsDialog(ctk.CTkToplevel):
                     self._all_items = cached_items
                     self.status_badge.configure(text='● CACHED', text_color='#74C0FC')
                     self._apply_filter('')
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.warning("Error reading local cache: %s", exc)
 
         # 2. Background thread: probe internet & sync fresh catalog
         def worker():
@@ -508,18 +594,24 @@ class OnlineSheetsDialog(ctk.CTkToplevel):
                     try:
                         with open(self.cache_file, 'w', encoding='utf-8') as f:
                             json.dump(items, f, ensure_ascii=False)
-                    except Exception:
-                        pass
+                    except Exception as ce:
+                        logger.warning("Failed to save local catalog cache: %s", ce)
                 self.after(0, lambda: self._apply_filter(self.var_search.get()))
             except Exception as e:
+                logger.error("Failed to load catalog: %s", e)
                 if not self._all_items:
-                    self.after(0, lambda: self.lbl_count.configure(text=f'Error loading catalog: {e}'))
+                    self.after(
+                        0,
+                        lambda: self.lbl_count.configure(
+                            text='Gagal mengambil katalog online. Situs mungkin sedang diperbarui atau koneksi terputus. Silakan coba lagi.'
+                        )
+                    )
 
         threading.Thread(target=worker, daemon=True).start()
 
     def _render_offline(self):
         self.status_badge.configure(text='● OFFLINE', text_color='#FA5252')
-        self.lbl_count.configure(text='You are currently offline. Connect to the internet to load sheets.')
+        self.lbl_count.configure(text='Koneksi internet terputus. Sambungkan internet untuk memuat sheets online.')
         for w in self.scroll_results.winfo_children():
             w.destroy()
 
@@ -534,14 +626,14 @@ class OnlineSheetsDialog(ctk.CTkToplevel):
 
         ctk.CTkLabel(
             card,
-            text='⚠ No Internet Connection',
+            text='⚠ Tidak Ada Koneksi Internet',
             font=FONT_LABEL_BOLD,
             text_color='#FFA94D',
         ).pack(pady=(16, 4))
 
         ctk.CTkLabel(
             card,
-            text='PlayPianoSheets.com requires an active internet connection to browse and download sheets.\n\nPlease connect to WiFi or the internet and click Retry.',
+            text='PlayPianoSheets.com memerlukan koneksi internet aktif untuk menelusuri dan mengunduh sheet musik.\n\nSilakan periksa koneksi WiFi / internet kamu atau gunakan sheet lokal.',
             font=FONT_SUBTLE,
             text_color=COLOR_TEXT_MUTED,
             wraplength=400,
@@ -550,7 +642,7 @@ class OnlineSheetsDialog(ctk.CTkToplevel):
 
         ctk.CTkButton(
             card,
-            text='Retry Connection',
+            text='Coba Lagi',
             font=FONT_LABEL_BOLD,
             fg_color=COLOR_ACCENT,
             hover_color=COLOR_ACCENT_HOVER,
@@ -621,7 +713,7 @@ class OnlineSheetsDialog(ctk.CTkToplevel):
         if not items:
             ctk.CTkLabel(
                 self.scroll_results,
-                text=f'No sheets found in "{self._active_genre}" matching your search.\nTry clearing the search box or switching categories.',
+                text=f'Tidak ada sheet ditemukan di kategori "{self._active_genre}".\nCoba hapus kata kunci pencarian atau pilih kategori lain.',
                 font=FONT_LABEL,
                 text_color=COLOR_TEXT_MUTED,
                 justify='center',
@@ -704,6 +796,7 @@ class OnlineSheetsDialog(ctk.CTkToplevel):
                     self.after(0, lambda: self.on_selected(out_file))
                 self.after(600, self.destroy)
             except Exception as exc:
+                logger.error("Download failure: %s", exc)
                 if btn:
                     self.after(0, lambda: btn.configure(text='Retry', state='normal', fg_color='#E03131'))
                 self.after(0, lambda: messagebox.showerror('Download Error', str(exc)))
